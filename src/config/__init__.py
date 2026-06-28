@@ -37,11 +37,11 @@ class Config:
             with open(config_path, 'r', encoding='utf-8') as f:
                 self._config = yaml.safe_load(f)
         
-        # from环境变量覆盖敏感信息
+        # Override sensitive info from environment variables
         self._override_from_env()
     
     def _override_from_env(self):
-        """从环境变量覆盖配置"""
+        """Override config from environment variables"""
         # Initialize sections if missing
         for section in ['binance', 'deepseek', 'redis']:
             if section not in self._config or self._config[section] is None:
@@ -55,7 +55,7 @@ class Config:
         if binance_secret:
             self._config['binance']['api_secret'] = binance_secret
         
-        # DeepSeek (向后兼容)
+        # DeepSeek (backward compatibility)
         if os.getenv('DEEPSEEK_API_KEY'):
             self._config['deepseek']['api_key'] = os.getenv('DEEPSEEK_API_KEY')
         
@@ -65,12 +65,12 @@ class Config:
         if os.getenv('REDIS_PORT'):
             self._config['redis']['port'] = int(os.getenv('REDIS_PORT'))
         
-        # LLM 多提供商支持
+        # LLM multi-provider support
         if 'llm' not in self._config:
             self._config['llm'] = {}
         
         # API Keys for each provider
-        # 支持 ANTHROPIC_API_KEY 作为 CLAUDE_API_KEY 的别名（优先级更高）
+        # Support ANTHROPIC_API_KEY as alias for CLAUDE_API_KEY (higher priority)
         claude_api_key = os.getenv('ANTHROPIC_API_KEY') or os.getenv('CLAUDE_API_KEY')
         
         llm_api_keys = {
@@ -96,7 +96,7 @@ class Config:
             self._config['llm']['model'] = llm_model
         
         # Custom base URL (for proxies)
-        # 支持 ANTHROPIC_BASE_URL 作为 LLM_BASE_URL 的别名（优先级更高）
+        # Support ANTHROPIC_BASE_URL as alias for LLM_BASE_URL (higher priority)
         base_url = os.getenv('ANTHROPIC_BASE_URL') or os.getenv('LLM_BASE_URL')
         if base_url:
             self._config['llm']['base_url'] = base_url

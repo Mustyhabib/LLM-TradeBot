@@ -361,7 +361,6 @@ class MultiAgentTradingBot:
         normalized_agents = self.agent_config.get_enabled_agents()
         self._last_agent_config = dict(normalized_agents)
         global_state.agent_config = normalized_agents
-
         self.agent_provider.reload(self.client)
 
     async def resolve_auto3_symbols(self):

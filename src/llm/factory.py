@@ -1,8 +1,8 @@
 """
-LLM 客户端工厂
-=============
+LLM Client Factory
+==================
 
-提供统一的客户端创建接口，根据 provider 名称返回对应实现。
+Provides a unified client creation interface, returning the corresponding implementation based on provider name.
 """
 
 from typing import Dict, Type
@@ -18,7 +18,7 @@ from .glm_client import GLMClient
 from .openrouter_client import OpenRouterClient
 
 
-# 注册所有支持的提供商
+# Register all supported providers
 PROVIDERS: Dict[str, Type[BaseLLMClient]] = {
     "openai": OpenAIClient,
     "deepseek": DeepSeekClient,
@@ -34,18 +34,18 @@ PROVIDERS: Dict[str, Type[BaseLLMClient]] = {
 
 def create_client(provider: str, config: LLMConfig) -> BaseLLMClient:
     """
-    工厂方法：根据 provider 创建对应客户端
-    
+    Factory method: create the corresponding client based on provider
+
     Args:
-        provider: 提供商名称 (openai, deepseek, claude, qwen, gemini, kimi, minimax, glm)
-        config: LLM 配置
-        
+        provider: Provider name (openai, deepseek, claude, qwen, gemini, kimi, minimax, glm)
+        config: LLM configuration
+
     Returns:
-        对应的 LLM 客户端实例
-        
+        The corresponding LLM client instance
+
     Raises:
-        ValueError: 不支持的提供商
-        
+        ValueError: Unsupported provider
+
     Example:
         >>> config = LLMConfig(api_key="sk-xxx")
         >>> client = create_client("deepseek", config)
@@ -66,17 +66,17 @@ def create_client(provider: str, config: LLMConfig) -> BaseLLMClient:
 
 
 def get_supported_providers() -> list:
-    """获取所有支持的提供商列表"""
+    """Get list of all supported providers"""
     return list(PROVIDERS.keys())
 
 
 def register_provider(name: str, client_class: Type[BaseLLMClient]):
     """
-    注册自定义提供商
-    
+    Register a custom provider
+
     Args:
-        name: 提供商名称
-        client_class: 客户端类（必须继承 BaseLLMClient）
+        name: Provider name
+        client_class: Client class (must inherit from BaseLLMClient)
     """
     if not issubclass(client_class, BaseLLMClient):
         raise TypeError("client_class must be a subclass of BaseLLMClient")

@@ -1,12 +1,12 @@
 """
-测试回测配置验证功能
+Test backtest configuration validation functionality
 """
 import pytest
 from src.backtest.engine import BacktestConfig
 
 
 def test_valid_config():
-    """测试有效配置"""
+    """Test valid configuration"""
     config = BacktestConfig(
         symbol="BTCUSDT",
         start_date="2024-01-01",
@@ -19,17 +19,17 @@ def test_valid_config():
 
 
 def test_invalid_date_format():
-    """测试无效日期格式"""
+    """Test invalid date format"""
     with pytest.raises(ValueError, match="Invalid date format"):
         BacktestConfig(
             symbol="BTCUSDT",
-            start_date="2024/01/01",  # 错误格式
+            start_date="2024/01/01",  # Wrong format
             end_date="2024-12-31"
         )
 
 
 def test_start_after_end():
-    """测试开始日期晚于结束日期"""
+    """Test start date after end date"""
     with pytest.raises(ValueError, match="must be before"):
         BacktestConfig(
             symbol="BTCUSDT",
@@ -39,7 +39,7 @@ def test_start_after_end():
 
 
 def test_negative_capital():
-    """测试负数初始资金"""
+    """Test negative initial capital"""
     with pytest.raises(ValueError, match="initial_capital must be positive"):
         BacktestConfig(
             symbol="BTCUSDT",
@@ -50,29 +50,29 @@ def test_negative_capital():
 
 
 def test_invalid_leverage():
-    """测试无效杠杆"""
+    """Test invalid leverage"""
     with pytest.raises(ValueError, match="leverage must be between"):
         BacktestConfig(
             symbol="BTCUSDT",
             start_date="2024-01-01",
             end_date="2024-12-31",
-            leverage=200  # 超出范围
+            leverage=200  # Out of range
         )
 
 
 def test_invalid_stop_loss():
-    """测试无效止损百分比"""
+    """Test invalid stop loss percentage"""
     with pytest.raises(ValueError, match="stop_loss_pct must be between"):
         BacktestConfig(
             symbol="BTCUSDT",
             start_date="2024-01-01",
             end_date="2024-12-31",
-            stop_loss_pct=150  # 超出范围
+            stop_loss_pct=150  # Out of range
         )
 
 
 def test_invalid_strategy_mode():
-    """测试无效策略模式"""
+    """Test invalid strategy mode"""
     with pytest.raises(ValueError, match="strategy_mode must be"):
         BacktestConfig(
             symbol="BTCUSDT",
@@ -83,7 +83,7 @@ def test_invalid_strategy_mode():
 
 
 def test_empty_symbol():
-    """测试空交易对"""
+    """Test empty symbol"""
     with pytest.raises(ValueError, match="symbol must be a non-empty string"):
         BacktestConfig(
             symbol="",
@@ -93,18 +93,18 @@ def test_empty_symbol():
 
 
 def test_no_duplicate_fields():
-    """验证没有重复字段定义"""
+    """Verify no duplicate field definitions"""
     import inspect
     from dataclasses import fields
     
     config_fields = fields(BacktestConfig)
     field_names = [f.name for f in config_fields]
     
-    # 检查use_llm和llm_cache只出现一次
+    # Check use_llm and llm_cache only appear once
     assert field_names.count('use_llm') == 1, "use_llm should appear only once"
     assert field_names.count('llm_cache') == 1, "llm_cache should appear only once"
     
-    # 检查没有重复字段
+    # Check for no duplicate fields
     assert len(field_names) == len(set(field_names)), "No duplicate field names allowed"
 
 

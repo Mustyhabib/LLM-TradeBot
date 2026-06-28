@@ -1,8 +1,8 @@
 """
-LLM 抽象基类和配置
-==================
+LLM Abstract Base Class and Configuration
+==========================================
 
-提供统一的 LLM 客户端接口，支持多种 LLM 提供商。
+Provides a unified LLM client interface supporting multiple LLM providers.
 """
 
 from abc import ABC, abstractmethod
@@ -17,7 +17,7 @@ import re
 
 @dataclass
 class LLMConfig:
-    """LLM 配置数据类"""
+    """LLM configuration dataclass"""
     api_key: str
     base_url: Optional[str] = None
     model: Optional[str] = None
@@ -33,14 +33,14 @@ class LLMConfig:
 
 @dataclass
 class ChatMessage:
-    """聊天消息"""
+    """Chat message"""
     role: str  # "system", "user", "assistant"
     content: str
 
 
 @dataclass
 class LLMResponse:
-    """LLM 响应"""
+    """LLM response"""
     content: str
     model: str
     provider: str
@@ -50,22 +50,22 @@ class LLMResponse:
 
 class BaseLLMClient(ABC):
     """
-    LLM 客户端抽象基类
-    
-    所有 LLM 提供商客户端必须继承此类并实现抽象方法。
+    LLM client abstract base class
+
+    All LLM provider clients must inherit this class and implement the abstract methods.
     """
     
-    # 子类需要覆盖的默认值
+    # Default values to be overridden by subclasses
     DEFAULT_BASE_URL: str = ""
     DEFAULT_MODEL: str = ""
     PROVIDER: str = "base"
     
     def __init__(self, config: LLMConfig):
         """
-        初始化 LLM 客户端
-        
+        Initialize LLM client
+
         Args:
-            config: LLM 配置
+            config: LLM configuration
         """
         self.config = config
         self.base_url = config.base_url or self.DEFAULT_BASE_URL
@@ -74,7 +74,7 @@ class BaseLLMClient(ABC):
     
     @abstractmethod
     def _build_headers(self) -> Dict[str, str]:
-        """构建请求头（子类实现不同认证方式）"""
+        """Build request headers (subclasses implement different auth methods)"""
         pass
     
     @abstractmethod
@@ -83,20 +83,20 @@ class BaseLLMClient(ABC):
         messages: List[ChatMessage],
         **kwargs
     ) -> Dict[str, Any]:
-        """构建请求体（子类可覆盖不同格式）"""
+        """Build request body (subclasses may override for different formats)"""
         pass
     
     @abstractmethod
     def _parse_response(self, response: Dict[str, Any]) -> LLMResponse:
-        """解析响应（子类可覆盖不同格式）"""
+        """Parse response (subclasses may override for different formats)"""
         pass
     
     def _build_url(self) -> str:
-        """构建请求 URL"""
+        """Build request URL"""
         return f"{self.base_url}/chat/completions"
     
     def _messages_to_list(self, messages: List[ChatMessage]) -> List[Dict[str, str]]:
-        """将 ChatMessage 列表转换为字典列表"""
+        """Convert ChatMessage list to list of dicts"""
         return [{"role": m.role, "content": m.content} for m in messages]
 
     def _estimate_tokens(self, text: str) -> int:
@@ -120,15 +120,15 @@ class BaseLLMClient(ABC):
         **kwargs
     ) -> LLMResponse:
         """
-        统一调用入口（简化版）
-        
+        Unified call entry point (simplified)
+
         Args:
-            system_prompt: 系统提示词
-            user_prompt: 用户提示词
-            **kwargs: 额外参数（temperature, max_tokens 等）
-            
+            system_prompt: System prompt
+            user_prompt: User prompt
+            **kwargs: Extra parameters (temperature, max_tokens, etc.)
+
         Returns:
-            LLMResponse 对象
+            LLMResponse object
         """
         messages = [
             ChatMessage(role="system", content=system_prompt),
@@ -142,14 +142,14 @@ class BaseLLMClient(ABC):
         **kwargs
     ) -> LLMResponse:
         """
-        多轮对话调用
-        
+        Multi-turn conversation call
+
         Args:
-            messages: 消息列表
-            **kwargs: 额外参数
-            
+            messages: List of messages
+            **kwargs: Extra parameters
+
         Returns:
-            LLMResponse 对象
+            LLMResponse object
         """
         url = self._build_url()
         headers = self._build_headers()
@@ -186,7 +186,7 @@ class BaseLLMClient(ABC):
                 last_error = e
                 record_error(self.PROVIDER, self.model, f"HTTP {e.response.status_code}")
                 if e.response.status_code in [429, 500, 502, 503, 504]:
-                    # 可重试的 HTTP 错误
+                    # Retryable HTTP errors
                     wait_time = 2 ** attempt
                     print(f"⚠️ LLM HTTP Error {e.response.status_code}, retrying in {wait_time}s (attempt {attempt + 1}/{self.config.max_retries})")
                     time.sleep(wait_time)
@@ -194,7 +194,7 @@ class BaseLLMClient(ABC):
                 raise
             except (httpx.ConnectError, httpx.ReadError, httpx.WriteError, 
                     ConnectionResetError, ConnectionError, OSError) as e:
-                # 网络连接错误，需要重试
+                # Network connection errors, need to retry
                 last_error = e
                 record_error(self.PROVIDER, self.model, type(e).__name__)
                 wait_time = 2 ** attempt
@@ -204,7 +204,7 @@ class BaseLLMClient(ABC):
             except Exception as e:
                 last_error = e
                 record_error(self.PROVIDER, self.model, type(e).__name__)
-                # 其他未知错误，最后一次尝试后抛出
+                # Other unknown errors, raise after last attempt
                 if attempt < self.config.max_retries - 1:
                     wait_time = 2 ** attempt
                     print(f"⚠️ LLM Unexpected Error: {type(e).__name__}: {e}, retrying in {wait_time}s")
@@ -216,7 +216,7 @@ class BaseLLMClient(ABC):
 
     
     def close(self):
-        """关闭 HTTP 客户端"""
+        """Close HTTP client"""
         self.client.close()
     
     def __enter__(self):

@@ -1,8 +1,8 @@
 """
-LLM 策略推理引擎 (Multi-Provider Support)
-=========================================
+LLM Strategy Inference Engine (Multi-Provider Support)
+=====================================================
 
-支持多种 LLM 提供商: OpenAI, DeepSeek, Claude, Qwen, Gemini, Kimi, MiniMax, GLM
+Supports multiple LLM providers: OpenAI, DeepSeek, Claude, Qwen, Gemini, Kimi, MiniMax, GLM
 """
 import json
 import re
@@ -57,23 +57,23 @@ def _extract_json_robust(text: str) -> Optional[Dict]:
 
 
 class StrategyEngine:
-    """多 LLM 提供商策略决策引擎"""
+    """Multi-LLM provider strategy decision engine"""
     
     def __init__(self):
-        # 获取 LLM 配置
+        # Get LLM configuration
         llm_config = config.llm
         provider = llm_config.get('provider') or os.getenv('LLM_PROVIDER', 'none')
         self.disable_llm = False
         
-        # 获取对应提供商的 API Key
+        # Get API key for the corresponding provider
         api_keys = llm_config.get('api_keys', {})
         api_key = api_keys.get(provider)
         
-        # 向后兼容: 如果没有新配置，使用旧的 deepseek 配置
+        # Backward compatibility: use old deepseek config if no new config
         if not api_key and provider == 'deepseek':
             api_key = config.deepseek.get('api_key')
         
-        # LLM 参数
+        # LLM parameters
         self.provider = provider
         self.model = llm_config.get('model')
         if not self.model and provider == 'deepseek':
@@ -81,7 +81,7 @@ class StrategyEngine:
         self.temperature = llm_config.get('temperature', config.deepseek.get('temperature', 0.3))
         self.max_tokens = llm_config.get('max_tokens', config.deepseek.get('max_tokens', 2000))
         
-        # 初始化解析器和验证器
+        # Initialize parser and validator
         self.parser = LLMOutputParser()
         self.validator = DecisionValidator({
             'max_leverage': config.risk.get('max_leverage', 5),
@@ -149,17 +149,17 @@ class StrategyEngine:
     
     def make_decision(self, market_context_text: str, market_context_data: Dict, reflection: str = None, bull_perspective: Dict = None, bear_perspective: Dict = None) -> Dict:
         """
-        基于市场上下文做出交易决策
+        Make trading decision based on market context
         
         Args:
-            market_context_text: 格式化的市场上下文文本
-            market_context_data: 原始市场数据
-            reflection: 可选的交易反思文本（来自 ReflectionAgent）
-            bull_perspective: 可选的多头观点
-            bear_perspective: 可选的空头观点
+            market_context_text: Formatted market context text
+            market_context_data: Raw market data
+            reflection: Optional trading reflection text (from ReflectionAgent)
+            bull_perspective: Optional bullish perspective
+            bear_perspective: Optional bearish perspective
             
         Returns:
-            决策结果字典
+            Decision result dictionary
         """
         if self.disable_llm:
             return self._get_fallback_decision(market_context_data)
@@ -179,7 +179,7 @@ class StrategyEngine:
             log.info("🐻 Gathering Bear perspective (on-demand)...")
             bear_perspective = self.get_bear_perspective(market_context_text)
         
-        # 🆕 保存Bull/Bear日志 (if they were generated here or passed in)
+        # 🆕 Save Bull/Bear logs (if they were generated here or passed in)
         try:
             from src.server.state import global_state
             if hasattr(global_state, 'saver') and hasattr(global_state, 'current_cycle_id'):
@@ -195,8 +195,8 @@ class StrategyEngine:
         system_prompt = self.get_system_prompt()
         user_prompt = self.get_user_prompt(market_context_text, bull_perspective, bear_perspective, reflection)
         
-        # 记录 LLM 输入
-        log.llm_input(f"正在发送市场数据到 {self.provider}...", market_context_text)
+        # Log LLM input
+        log.llm_input(f"Sending market data to {self.provider}...", market_context_text)
 
         
         try:
@@ -207,41 +207,41 @@ class StrategyEngine:
                 max_tokens=self.max_tokens
             )
             
-            # 获取原始响应
+            # Get raw response
             content = response.content
             
-            # 使用新解析器解析结构化输出
+            # Parse structured output using new parser
             parsed = self.parser.parse(content)
             decision = parsed['decision']
             reasoning = parsed['reasoning']
             
-            # 标准化 action 字段
+            # Normalize action field
             if 'action' in decision:
                 decision['action'] = self.parser.normalize_action(
                     decision['action'],
                     position_side=market_context_data.get('position_side')
                 )
             
-            # 验证决策
+            # Validate decision
             is_valid, errors = self.validator.validate(decision)
             if not is_valid:
-                log.warning(f"LLM 决策验证失败: {errors}")
-                log.warning(f"原始决策: {decision}")
+                log.warning(f"LLM decision validation failed: {errors}")
+                log.warning(f"Original decision: {decision}")
                 return self._get_fallback_decision(market_context_data)
             
-            # 记录 LLM 输出
-            log.llm_output(f"{self.provider} 返回决策结果", decision)
+            # Log LLM output
+            log.llm_output(f"{self.provider} returned decision result", decision)
             if reasoning:
-                log.info(f"推理过程:\n{reasoning}")
+                log.info(f"Reasoning process:\n{reasoning}")
             
-            # 记录决策
+            # Log decision
             log.llm_decision(
                 action=decision.get('action', 'wait'),
                 confidence=decision.get('confidence', 0),
                 reasoning=decision.get('reasoning', reasoning)
             )
             
-            # 添加元数据
+            # Add metadata
             decision['timestamp'] = market_context_data['timestamp']
             decision['symbol'] = market_context_data['symbol']
             decision['model'] = self.model
@@ -267,11 +267,11 @@ class StrategyEngine:
                 log.error(f"LLM decision failed: {e} (LLM disabled)")
             else:
                 log.error(f"LLM decision failed: {e}")
-            # 返回保守决策
+            # Return conservative decision
             return self._get_fallback_decision(market_context_data)
         except Exception as e:
             log.error(f"LLM decision failed: {e}")
-            # 返回保守决策
+            # Return conservative decision
             return self._get_fallback_decision(market_context_data)
     
     def get_bull_perspective(self, market_context_text: str) -> Dict:
@@ -460,9 +460,9 @@ Analyze the above data following the strategy rules in system prompt. Output you
     
     def _get_fallback_decision(self, context: Dict) -> Dict:
         """
-        获取兜底决策（当LLM失败时）
+        Get fallback decision (when LLM fails)
         
-        返回保守的hold决策
+        Returns a conservative hold decision
         """
         return {
             'action': 'wait',
@@ -479,7 +479,7 @@ Analyze the above data following the strategy rules in system prompt. Output you
     
     def validate_decision(self, decision: Dict) -> bool:
         """
-        验证决策格式是否正确
+        Validate whether the decision format is correct
         
         Returns:
             True if valid, False otherwise
@@ -489,20 +489,20 @@ Analyze the above data following the strategy rules in system prompt. Output you
             'position_size_pct', 'stop_loss_pct', 'take_profit_pct', 'reasoning'
         ]
         
-        # 检查必需字段
+        # Check required fields
         for field in required_fields:
             if field not in decision:
-                log.error(f"决策缺少必需字段: {field}")
+                log.error(f"Decision missing required field: {field}")
                 return False
         
-        # 检查action合法性
+        # Check action legality
         if decision['action'] not in VALID_ACTIONS:
-            log.error(f"无效的action: {decision['action']}")
+            log.error(f"Invalid action: {decision['action']}")
             return False
         
-        # 检查数值范围
+        # Check numeric range
         if not (0 <= decision['confidence'] <= 100):
-            log.error(f"confidence超出范围: {decision['confidence']}")
+            log.error(f"confidence out of range: {decision['confidence']}")
             return False
         
         # STRICT ENFORCEMENT: Open trades must meet Dynamic Confidence Threshold
@@ -536,11 +536,11 @@ Analyze the above data following the strategy rules in system prompt. Output you
             decision['reasoning'] = f"Low confidence ({confidence}% < {regime_threshold}% dynamic threshold), wait for better setup"
         
         if not (1 <= decision['leverage'] <= config.risk.get('max_leverage', 5)):
-            log.error(f"leverage超出范围: {decision['leverage']}")
+            log.error(f"leverage out of range: {decision['leverage']}")
             return False
         
         if not (0 <= decision['position_size_pct'] <= 100):
-            log.error(f"position_size_pct超出范围: {decision['position_size_pct']}")
+            log.error(f"position_size_pct out of range: {decision['position_size_pct']}")
             return False
         
         return True

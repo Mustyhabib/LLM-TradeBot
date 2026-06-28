@@ -3,7 +3,7 @@ from datetime import datetime
 
 @dataclass
 class TradeRecord:
-    """交易记录"""
+    """Trade record"""
     symbol: str
     action: str
     timestamp: datetime

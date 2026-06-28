@@ -1,8 +1,8 @@
 """
-GLM 客户端实现
-==============
+GLM Client Implementation
+=========================
 
-智谱 GLM 使用 OpenAI 兼容 API。
+Zhipu GLM uses an OpenAI-compatible API.
 """
 
 from .openai_client import OpenAIClient
@@ -10,9 +10,9 @@ from .openai_client import OpenAIClient
 
 class GLMClient(OpenAIClient):
     """
-    GLM 客户端
+    GLM client
 
-    使用智谱开放平台的 OpenAI 兼容接口。
+    Uses the OpenAI-compatible interface of the Zhipu Open Platform.
     """
 
     DEFAULT_BASE_URL = "https://open.bigmodel.cn/api/paas/v4"

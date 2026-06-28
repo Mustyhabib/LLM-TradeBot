@@ -1,6 +1,6 @@
 import sys
 import os
-# ensure project root in path for imports
+# Ensure project root is in path for imports
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import pandas as pd
@@ -27,27 +27,27 @@ def make_base_df(n=60, start_price=10000.0, freq='5T'):
 def test_time_gaps_marked_and_imputed():
     proc = MarketDataProcessor()
     df = make_base_df(60)
-    # remove a couple timestamps to create small gap
+    # Remove a couple timestamps to create a small gap
     df2 = df.drop(index=[5, 6, 12]).reset_index(drop=True)
     klines = df2.to_dict('records')
     processed = proc.process_klines(klines, symbol='TEST', timeframe='5m')
     features = proc.extract_feature_snapshot(processed, lookback=12, allowed_gap_bars=2)
-    # 检查 is_imputed 列存在
+    # Check is_imputed column exists
     assert 'is_imputed' in features.columns
-    # 若有短gap, 仍会插值并标记
+    # If there is a short gap, it will still be interpolated and marked
     assert features['is_imputed'].any() or not processed.empty
 
 
 def test_divide_by_zero_safety():
     proc = MarketDataProcessor()
     df = make_base_df(60)
-    # 设置部分 close 和 vwap 为0
+    # Set some close and vwap values to 0
     df.loc[10, 'close'] = 0.0
     df.loc[20, 'close'] = 0.0
     klines = df.to_dict('records')
     processed = proc.process_klines(klines, symbol='TEST2', timeframe='5m')
     features = proc.extract_feature_snapshot(processed, lookback=20)
-    # 检查是否有 inf
+    # Check for inf
     assert not np.isinf(features.select_dtypes(include=[np.number]).fillna(0).to_numpy()).any()
 
 
@@ -56,9 +56,9 @@ def test_warmup_flag():
     df = make_base_df(60)
     klines = df.to_dict('records')
     processed = proc.process_klines(klines, symbol='TEST3', timeframe='5m')
-    # use larger lookback than available bars to force warm_up_bars_remaining>0
+    # Use larger lookback than available bars to force warm_up_bars_remaining > 0
     features = proc.extract_feature_snapshot(processed, lookback=100)
-    # 由于输入少于 lookback, warm_up_bars_remaining 应大于0
+    # Since input is less than lookback, warm_up_bars_remaining should be > 0
     assert features['warm_up_bars_remaining'].iloc[-1] > 0
 
 
@@ -68,7 +68,7 @@ def test_macd_and_atr_percent_normalization():
     klines = df.to_dict('records')
     processed = proc.process_klines(klines, symbol='BTC_TEST', timeframe='5m')
     features = proc.extract_feature_snapshot(processed, lookback=50)
-    # macd_pct 和 atr_pct 不应太大
+    # macd_pct and atr_pct should not be too large
     assert features['macd_pct'].abs().max() < 50
     assert features['atr_pct'].abs().max() < 50
 
@@ -76,11 +76,11 @@ def test_macd_and_atr_percent_normalization():
 def test_outlier_winsorize():
     proc = MarketDataProcessor()
     df = make_base_df(60)
-    df.loc[30, 'close'] = df['close'].mean() * 1000  # 极端价格点
+    df.loc[30, 'close'] = df['close'].mean() * 1000  # Extreme price point
     klines = df.to_dict('records')
     processed = proc.process_klines(klines, symbol='OUTLIER', timeframe='5m')
     features = proc.extract_feature_snapshot(processed, lookback=20)
-    # return_pct 不应包含极端值
+    # return_pct should not contain extreme values
     assert features['return_pct'].dropna().abs().max() < 1e4
 
 

@@ -1,5 +1,5 @@
 """
-Binance API 接入层
+Binance API Access Layer
 """
 from typing import Dict, List, Optional, Any
 from binance.client import Client
@@ -13,7 +13,7 @@ from src.server.state import global_state
 
 
 class BinanceClient:
-    """Binance API 客户端封装"""
+    """Binance API Client Wrapper"""
     
     def __init__(self, api_key: str = None, api_secret: str = None, testnet: bool = None, test_mode: bool = False):
         self.api_key = api_key or config.binance.get('api_key')
@@ -22,7 +22,7 @@ class BinanceClient:
         self.offline = False
         self.test_mode = test_mode
         
-        # 初始化客户端
+        # Initialize client
         try:
             if self.testnet:
                 self.client = Client(
@@ -40,24 +40,24 @@ class BinanceClient:
         
         self.ws_manager: Optional[ThreadedWebsocketManager] = None
         
-        # 缓存层
+        # Cache layer
         self._funding_cache = {} # {symbol: (rate, timestamp)}
-        self._cache_duration = 3600 # 1小时缓存
+        self._cache_duration = 3600 # 1 hour cache
         
         log.info(f"Binance client initialized (testnet: {self.testnet})")
     
     def get_klines(self, symbol: str, interval: str, limit: int = 500, start_time: int = None) -> List[Dict]:
         """
-        获取K线数据
+        Get K-line data
         
         Args:
-            symbol: 交易对，如 'BTCUSDT'
-            interval: 时间周期，如 '1m', '5m', '15m', '1h'
-            limit: 数量限制
-            start_time: 起始时间戳(毫秒), 用于增量获取
+            symbol: Trading pair, e.g. 'BTCUSDT'
+            interval: Time interval, e.g. '1m', '5m', '15m', '1h'
+            limit: Quantity limit
+            start_time: Start timestamp (milliseconds), used for incremental fetch
             
         Returns:
-            K线数据列表
+            K-line data list
         """
         if self.client is None:
             raise ConnectionError("Binance client unavailable (offline mode)")
@@ -79,7 +79,7 @@ class BinanceClient:
             if len(klines) < 10 and start_time is None:
                 log.warning(f"[API] Low kline count for {symbol} {interval}: requested={limit}, returned={len(klines)}")
             
-            # 格式化数据
+            # Format data
             formatted_klines = []
             for k in klines:
                 formatted_klines.append({
@@ -103,7 +103,7 @@ class BinanceClient:
             raise
     
     def get_ticker_price(self, symbol: str) -> Dict:
-        """获取最新价格"""
+        """Get latest price"""
         if self.client is None:
             raise ConnectionError("Binance client unavailable (offline mode)")
         try:
@@ -119,7 +119,7 @@ class BinanceClient:
 
     def get_all_tickers(self) -> List[Dict]:
         """
-        获取所有交易对的 24hr 统计数据 (用于按成交量排行)
+        Get 24hr statistics for all trading pairs (used for ranking by volume)
         Return List of dictionary:
         {
             'symbol': 'BTCUSDT',
@@ -149,7 +149,7 @@ class BinanceClient:
             return []
     
     def get_orderbook(self, symbol: str, limit: int = 20) -> Dict:
-        """获取订单簿"""
+        """Get order book"""
         try:
             depth = self.client.get_order_book(symbol=symbol, limit=limit)
             return {
@@ -162,11 +162,11 @@ class BinanceClient:
             raise
     
     def get_account_info(self) -> Dict:
-        """获取账户信息"""
+        """Get account info"""
         try:
             account = self.client.get_account()
             
-            # 提取USDT余额
+            # Extract USDT balance
             usdt_balance = 0
             for balance in account['balances']:
                 if balance['asset'] == 'USDT':
@@ -184,7 +184,7 @@ class BinanceClient:
             raise
     
     def get_futures_account(self) -> Dict:
-        """获取合约账户信息"""
+        """Get futures account info"""
         try:
             account = self.client.futures_account()
             
@@ -202,7 +202,7 @@ class BinanceClient:
             raise
     
     def get_futures_position(self, symbol: str) -> Optional[Dict]:
-        """获取特定合约的持仓信息"""
+        """Get position info for a specific contract"""
         try:
             positions = self.client.futures_position_information(symbol=symbol)
             
@@ -228,10 +228,10 @@ class BinanceClient:
     
     def get_account_balance(self) -> float:
         """
-        获取合约账户可用余额
+        Get futures account available balance
         
         Returns:
-            float: 可用余额（USDT）
+            float: Available balance (USDT)
         """
         try:
             account = self.get_futures_account()
@@ -241,7 +241,7 @@ class BinanceClient:
             raise
 
     def set_leverage(self, symbol: str, leverage: int) -> bool:
-        """设置合约杠杆倍数（兼容主流程调用）"""
+        """Set contract leverage multiplier (compatible with main flow calls)"""
         if self.client is None:
             raise ConnectionError("Binance client unavailable (offline mode)")
         try:

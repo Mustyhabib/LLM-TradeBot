@@ -1,6 +1,6 @@
 """
 Binance WebSocket Manager
-管理 WebSocket 连接并维护实时 K 线缓存
+Manages WebSocket connections and maintains real-time K-line cache
 """
 import threading
 import time
@@ -12,52 +12,52 @@ from src.utils.logger import log
 
 class BinanceWebSocketManager:
     """
-    Binance WebSocket 管理器
+    Binance WebSocket Manager
     
-    功能:
-    1. 订阅多个时间周期的 K 线流 (5m, 15m, 1h)
-    2. 维护线程安全的 K 线缓存
-    3. 自动重连
+    Features:
+    1. Subscribe to K-line streams for multiple timeframes (5m, 15m, 1h)
+    2. Maintain thread-safe K-line cache
+    3. Auto reconnect
     """
     
     def __init__(self, symbol: str, timeframes: List[str], cache_size: int = 500):
         """
-        初始化 WebSocket 管理器
+        Initialize WebSocket Manager
         
         Args:
-            symbol: 交易对 (如 'BTCUSDT')
-            timeframes: 时间周期列表 (如 ['5m', '15m', '1h'])
-            cache_size: 每个时间周期缓存的 K 线数量
+            symbol: Trading pair (e.g. 'BTCUSDT')
+            timeframes: Timeframe list (e.g. ['5m', '15m', '1h'])
+            cache_size: Number of K-lines cached per timeframe
         """
         self.symbol = symbol.upper()
         self.timeframes = timeframes
         self.cache_size = cache_size
         
-        # K 线缓存: {timeframe: deque([kline_dict, ...])}
+        # K-line cache: {timeframe: deque([kline_dict, ...])}
         self.kline_cache: Dict[str, deque] = {
             tf: deque(maxlen=cache_size) for tf in timeframes
         }
         
-        # 线程锁，保证缓存访问安全
+        # Thread lock to ensure cache access safety
         self._cache_lock = threading.Lock()
         
-        # WebSocket 管理器
+        # WebSocket manager
         self.ws_manager: Optional[ThreadedWebsocketManager] = None
         self._is_running = False
         
-        log.info(f"WebSocket Manager 初始化: {symbol} | 周期: {timeframes}")
+        log.info(f"WebSocket Manager initialized: {symbol} | Timeframes: {timeframes}")
     
     def start(self):
-        """启动 WebSocket 连接"""
+        """Start WebSocket connection"""
         if self._is_running:
-            log.warning("WebSocket 已经在运行中")
+            log.warning("WebSocket is already running")
             return
         
         try:
             self.ws_manager = ThreadedWebsocketManager()
             self.ws_manager.start()
             
-            # 订阅各个时间周期的 K 线流
+            # Subscribe to K-line streams for each timeframe
             for timeframe in self.timeframes:
                 stream_name = f"{self.symbol.lower()}@kline_{timeframe}"
                 
@@ -86,24 +86,24 @@ class BinanceWebSocketManager:
     
     def _handle_kline_message(self, msg: dict):
         """
-        处理 WebSocket K 线消息
+        Handle WebSocket K-line message
         
-        消息格式:
+        Message format:
         {
             'e': 'kline',
             'E': 1640000000000,
             's': 'BTCUSDT',
             'k': {
-                't': 1640000000000,  # 开盘时间
-                'T': 1640000300000,  # 收盘时间
+                't': 1640000000000,  # Open time
+                'T': 1640000300000,  # Close time
                 's': 'BTCUSDT',
-                'i': '5m',           # 时间周期
-                'o': '50000.00',     # 开盘价
-                'c': '50100.00',     # 收盘价
-                'h': '50200.00',     # 最高价
-                'l': '49900.00',     # 最低价
-                'v': '100.5',        # 成交量
-                'x': False           # 是否完成
+                'i': '5m',           # Timeframe
+                'o': '50000.00',     # Open price
+                'c': '50100.00',     # Close price
+                'h': '50200.00',     # High price
+                'l': '49900.00',     # Low price
+                'v': '100.5',        # Volume
+                'x': False           # Is closed
             }
         }
         """
@@ -113,12 +113,12 @@ class BinanceWebSocketManager:
             
             kline = msg['k']
             timeframe = kline['i']
-            is_closed = kline['x']  # K 线是否已完成
+            is_closed = kline['x']  # Whether K-line is closed
             
-            # 转换为标准格式 (与 REST API 一致)
+            # Convert to standard format (consistent with REST API)
             kline_data = {
-                'timestamp': kline['t'],     # 开盘时间 (毫秒时间戳)
-                'open_time': kline['t'],     # 保持对旧代码的兼容性
+                'timestamp': kline['t'],     # Open time (millisecond timestamp)
+                'open_time': kline['t'],     # Backward compatibility with old code
                 'open': float(kline['o']),
                 'high': float(kline['h']),
                 'low': float(kline['l']),
@@ -128,52 +128,52 @@ class BinanceWebSocketManager:
                 'is_closed': is_closed
             }
             
-            # 更新缓存 (线程安全)
+            # Update cache (thread-safe)
             with self._cache_lock:
                 cache = self.kline_cache[timeframe]
                 
                 if cache and cache[-1]['timestamp'] == kline_data['timestamp']:
-                    # 如果时间戳相同，无论是否已完成，都直接更新（覆盖旧数据或更新未完成数据）
+                    # If timestamp is the same, update directly regardless of closed status (overwrite old data or update incomplete data)
                     cache[-1] = kline_data
                     if is_closed:
-                        log.debug(f"📊 K 线已关闭: {self.symbol} {timeframe} | Close: {kline_data['close']}")
+                        log.debug(f"📊 K-line closed: {self.symbol} {timeframe} | Close: {kline_data['close']}")
                 else:
-                    # 如果是新时间戳，追加到缓存
+                    # If new timestamp, append to cache
                     cache.append(kline_data)
                     if is_closed:
-                        log.debug(f"📊 新 K 线开启且已完成: {self.symbol} {timeframe}")
+                        log.debug(f"📊 New K-line opened and closed: {self.symbol} {timeframe}")
                         
         except Exception as e:
             log.error(f"处理 WebSocket 消息失败: {e}")
     
     def get_klines(self, timeframe: str, limit: int = 300) -> List[Dict]:
         """
-        获取缓存的 K 线数据
+        Get cached K-line data
         
         Args:
-            timeframe: 时间周期 ('5m', '15m', '1h')
-            limit: 返回的 K 线数量
+            timeframe: Timeframe ('5m', '15m', '1h')
+            limit: Number of K-lines to return
             
         Returns:
-            K 线数据列表 (按时间升序)
+            K-line data list (ascending by time)
         """
         with self._cache_lock:
             cache = self.kline_cache.get(timeframe, deque())
-            # 返回最近 N 根 K 线
+            # Return the most recent N K-lines
             return list(cache)[-limit:] if cache else []
     
     def get_cache_size(self, timeframe: str) -> int:
-        """获取指定时间周期的缓存大小"""
+        """Get cache size for specified timeframe"""
         with self._cache_lock:
             return len(self.kline_cache.get(timeframe, deque()))
     
     def is_ready(self, timeframe: str, min_klines: int = 100) -> bool:
         """
-        检查缓存是否已准备好
+        Check if cache is ready
         
         Args:
-            timeframe: 时间周期
-            min_klines: 最小 K 线数量
+            timeframe: Timeframe
+            min_klines: Minimum number of K-lines
             
         Returns:
             True if cache has enough data
@@ -181,7 +181,7 @@ class BinanceWebSocketManager:
         return self.get_cache_size(timeframe) >= min_klines
     
     def stop(self):
-        """停止 WebSocket 连接"""
+        """Stop WebSocket connection"""
         if not self._is_running:
             return
         
@@ -196,15 +196,15 @@ class BinanceWebSocketManager:
             log.error(f"停止 WebSocket 失败: {e}")
     
     def __del__(self):
-        """析构函数，确保资源释放"""
+        """Destructor, ensure resource release"""
         self.stop()
 
 
-# 测试代码
+# Test code
 if __name__ == "__main__":
     import time
     
-    # 创建 WebSocket 管理器
+    # Create WebSocket manager
     ws_manager = BinanceWebSocketManager(
         symbol="BTCUSDT",
         timeframes=['5m', '15m', '1h']
@@ -213,14 +213,14 @@ if __name__ == "__main__":
     # 启动
     ws_manager.start()
     
-    # 等待数据积累
-    print("等待 WebSocket 数据...")
+    # Wait for data accumulation
+    print("Waiting for WebSocket data...")
     time.sleep(10)
     
     # 检查缓存
     for tf in ['5m', '15m', '1h']:
         klines = ws_manager.get_klines(tf, limit=5)
-        print(f"\n{tf} K线缓存: {len(klines)} 根")
+        print(f"\n{tf} K-line cache: {len(klines)} bars")
         if klines:
             latest = klines[-1]
             print(f"最新价格: {latest['close']}")

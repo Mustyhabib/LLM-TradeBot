@@ -1,94 +1,94 @@
-# Binance API 配置
-# 注意: api_key 和 api_secret 会被 .env 文件中的环境变量自动覆盖
-# 推荐使用 .env 文件配置敏感信息
+# Binance API Configuration
+# Note: api_key and api_secret will be automatically overridden by environment variables in .env file
+# Recommended to use .env file for sensitive information configuration
 binance:
-  api_key: "BINANCE_API_KEY"        # 会被环境变量 BINANCE_API_KEY 覆盖
-  api_secret: "BINANCE_API_SECRET"  # 会被环境变量 BINANCE_API_SECRET 覆盖
-  testnet: true  # 测试网模式，实盘前改为 false
+  api_key: "BINANCE_API_KEY"        # Will be overridden by environment variable BINANCE_API_KEY
+  api_secret: "BINANCE_API_SECRET"  # Will be overridden by environment variable BINANCE_API_SECRET
+  testnet: true  # Testnet mode, change to false before live trading
   
-# DeepSeek API 配置 (向后兼容)
-# 注意: api_key 会被 .env 文件中的环境变量自动覆盖
+# DeepSeek API Configuration (backward compatibility)
+# Note: api_key will be automatically overridden by environment variables in .env file
 deepseek:
-  api_key: "DEEPSEEK_API_KEY"       # 会被环境变量 DEEPSEEK_API_KEY 覆盖
+  api_key: "DEEPSEEK_API_KEY"       # Will be overridden by environment variable DEEPSEEK_API_KEY
   base_url: "https://api.deepseek.com"
   model: "deepseek-chat"
   temperature: 0.3
   max_tokens: 2000
 
-# LLM 配置 (多提供商支持)
-# 支持: openai, deepseek, claude, qwen, gemini, kimi, minimax, glm
+# LLM Configuration (multi-provider support)
+# Supports: openai, deepseek, claude, qwen, gemini, kimi, minimax, glm
 llm:
-  provider: deepseek              # 当前使用的提供商
-  model: deepseek-chat            # 模型名称 (留空则使用提供商默认值)
+  provider: deepseek              # Currently used provider
+  model: deepseek-chat            # Model name (leave empty to use provider default)
   temperature: 0.3
   max_tokens: 2000
   timeout: 120
   max_retries: 3
 
-# 交易配置
+# Trading Configuration
 trading:
-  symbols: ["BTCUSDT"]  # 默认只使用 BTC，可添加其他币种如 "ETHUSDT", "SOLUSDT"
-  primary_symbol: "BTCUSDT"  # 主要交易对（向后兼容）
+  symbols: ["BTCUSDT"]  # Default uses only BTC, can add other symbols like "ETHUSDT", "SOLUSDT"
+  primary_symbol: "BTCUSDT"  # Primary trading pair (backward compatibility)
   timeframes: ["1m", "5m", "15m", "1h"]
   leverage: 5
-  symbol_blacklist: []  # 可选：禁用高风险/低流动性币种
-  selector_min_quote_volume: 5000000  # 24h USDT成交额下限
-  selector_min_price: 0.05  # 过滤超低价币种
-  selector_min_quote_volume_per_usdt: 3000  # 动态成交额下限(每1 USDT权益)
+  symbol_blacklist: []  # Optional: Disable high-risk/low-liquidity symbols
+  selector_min_quote_volume: 5000000  # 24h USDT trading volume lower limit
+  selector_min_price: 0.05  # Filter ultra-low price symbols
+  selector_min_quote_volume_per_usdt: 3000  # Dynamic trading volume lower limit (per 1 USDT equity)
   
-# 风控配置
+# Risk Configuration
 risk:
-  max_risk_per_trade_pct: 1.5  # 单笔最大风险
-  max_total_position_pct: 33.3  # 最大总仓位
+  max_risk_per_trade_pct: 1.5  # Maximum risk per trade
+  max_total_position_pct: 33.3  # Maximum total position
   max_leverage: 5
   max_consecutive_losses: 3
   stop_trading_on_drawdown_pct: 10.0
-  max_holding_cycles: 180  # 最大持仓周期硬上限 (≈ 9h if cycle_interval=3m)
+  max_holding_cycles: 180  # Maximum holding period hard limit (≈ 9h if cycle_interval=3m)
 
-# Redis 配置
+# Redis Configuration
 redis:
   host: "localhost"
   port: 6379
   db: 0
   
-# 日志配置
+# Logging Configuration
 logging:
   level: "INFO"
   file: "logs/trading.log"
   
-# 回测配置
+# Backtest Configuration
 backtest:
   start_date: "2024-01-01"
   end_date: "2024-12-01"
   initial_capital: 10000
 
-# Agent 配置 (可选 Agent 开关)
-# Core agents (DataSyncAgent, QuantAnalystAgent, RiskAuditAgent) 始终启用
+# Agent Configuration (Optional Agent switches)
+# Core agents (DataSyncAgent, QuantAnalystAgent, RiskAuditAgent) are always enabled
 agents:
-  # ML/AI 预测层
-  predict_agent: true              # ML 概率预测
-  ai_prediction_filter_agent: true # AI 否决机制 (依赖 predict_agent)
+  # ML/AI Prediction Layer
+  predict_agent: true              # ML probability prediction
+  ai_prediction_filter_agent: true # AI veto mechanism (depends on predict_agent)
   
-  # 市场分析
-  regime_detector_agent: true      # 市场状态检测 (趋势/震荡/高波动)
-  position_analyzer_agent: false   # 价格位置分析 (区间位置)
+  # Market Analysis
+  regime_detector_agent: true      # Market state detection (trending/oscillating/high volatility)
+  position_analyzer_agent: false   # Price position analysis (range position)
   
-  # 触发检测
-  trigger_detector_agent: true     # 5m K线模式检测
+  # Trigger Detection
+  trigger_detector_agent: true     # 5m K-line pattern detection
   
-  # LLM 语义分析 (消耗 API 额度，默认关闭)
-  trend_agent_llm: false           # 1h 趋势 LLM 分析
-  setup_agent_llm: false           # 15m 入场 LLM 分析
-  trigger_agent_llm: false         # 5m 触发 LLM 分析
+  # LLM Semantic Analysis (consumes API quota, default off)
+  trend_agent_llm: false           # 1h trend LLM analysis
+  setup_agent_llm: false           # 15m entry LLM analysis
+  trigger_agent_llm: false         # 5m trigger LLM analysis
   
-  # 本地语义分析 (不调用 LLM)
-  trend_agent_local: true          # 1h 趋势规则分析
-  setup_agent_local: true          # 15m 入场规则分析
-  trigger_agent_local: true        # 5m 触发规则分析
+  # Local Semantic Analysis (does not call LLM)
+  trend_agent_local: true          # 1h trend rule analysis
+  setup_agent_local: true          # 15m entry rule analysis
+  trigger_agent_local: true        # 5m trigger rule analysis
   
-  # 交易反思
-  reflection_agent_llm: false      # 每 10 笔交易后 LLM 反思
-  reflection_agent_local: true     # 本地规则反思
+  # Trade Reflection
+  reflection_agent_llm: false      # LLM reflection after every 10 trades
+  reflection_agent_local: true     # Local rule reflection
   
-  # 选币
-  symbol_selector_agent: true      # AUTO1/AUTO3 自动选币
+  # Symbol Selection
+  symbol_selector_agent: true      # AUTO1/AUTO3 automatic symbol selection

@@ -5,9 +5,9 @@ from .risk_level import RiskLevel
 
 @dataclass
 class RiskCheckResult:
-    """风控检查结果"""
-    passed: bool  # 是否通过
+    """Risk check result"""
+    passed: bool  # Whether passed
     risk_level: RiskLevel
-    blocked_reason: Optional[str] = None  # 拦截原因（如果未通过）
-    corrections: Optional[Dict] = None  # 自动修正内容
-    warnings: List[str] = None  # 警告信息
+    blocked_reason: Optional[str] = None  # Blocking reason (if not passed)
+    corrections: Optional[Dict] = None  # Auto-correction content
+    warnings: List[str] = None  # Warning messages

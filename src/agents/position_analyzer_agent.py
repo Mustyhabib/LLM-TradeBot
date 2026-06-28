@@ -1,6 +1,6 @@
 """
-位置感知模块 (Position Analyzer)
-计算当前价格在最近区间的位置，用于过滤低质量交易
+Position Awareness Module (Position Analyzer)
+Calculates the current price position within the recent range, used to filter low-quality trades
 """
 
 import pandas as pd
@@ -9,46 +9,46 @@ from enum import Enum
 
 
 class PriceLocation(Enum):
-    """价格位置分类"""
-    SUPPORT = "support"      # 支撑位附近 (0-20%)
-    LOWER = "lower"          # 中下部 (20-40%)
-    MIDDLE = "middle"        # 区间中部 (40-60%)
-    UPPER = "upper"          # 中上部 (60-80%)
-    RESISTANCE = "resistance"  # 阻力位附近 (80-100%)
+    """Price location classification"""
+    SUPPORT = "support"      # Near support (0-20%)
+    LOWER = "lower"          # Lower-middle (20-40%)
+    MIDDLE = "middle"        # Middle of range (40-60%)
+    UPPER = "upper"          # Upper-middle (60-80%)
+    RESISTANCE = "resistance"  # Near resistance (80-100%)
 
 
 class PositionQuality(Enum):
-    """位置质量评级"""
-    EXCELLENT = "excellent"  # 优秀（支撑/阻力）
-    GOOD = "good"           # 良好（中下/中上）
-    POOR = "poor"           # 较差（接近中部）
-    TERRIBLE = "terrible"   # 极差（区间中部）
+    """Position quality rating"""
+    EXCELLENT = "excellent"  # Excellent (support/resistance)
+    GOOD = "good"           # Good (lower-middle/upper-middle)
+    POOR = "poor"           # Poor (near middle)
+    TERRIBLE = "terrible"   # Terrible (middle of range)
 
 
 class PositionAnalyzer:
     """
-    位置感知分析器
+    Position Awareness Analyzer
     
-    核心功能：
-    1. 计算价格在最近区间的位置百分比
-    2. 判断位置质量
-    3. 提供开仓建议（允许做多/做空）
+    Core functions:
+    1. Calculate price position percentage within the recent range
+    2. Determine position quality
+    3. Provide trade opening suggestions (allow long/short)
     
-    核心理念：
-    - 只在支撑位附近做多
-    - 只在阻力位附近做空
-    - 禁止在区间中部（40-60%）开仓
+    Core principles:
+    - Only go long near support
+    - Only go short near resistance
+    - Prohibit opening positions in the middle of range (40-60%)
     """
     
     def __init__(self, 
-                 lookback_4h: int = 48,   # 4小时区间（48根5分钟K线）
-                 lookback_1d: int = 288):  # 1天区间（288根5分钟K线）
+                 lookback_4h: int = 48,   # 4-hour range (48 5-minute K-lines)
+                 lookback_1d: int = 288):  # 1-day range (288 5-minute K-lines)
         """
-        初始化位置分析器
+        Initialize position analyzer
         
         Args:
-            lookback_4h: 4小时区间的K线数量
-            lookback_1d: 1天区间的K线数量
+            lookback_4h: Number of K-lines in 4-hour range
+            lookback_1d: Number of K-lines in 1-day range
         """
         self.lookback_4h = lookback_4h
         self.lookback_1d = lookback_1d
@@ -58,41 +58,41 @@ class PositionAnalyzer:
                         current_price: float,
                         timeframe: str = '5m') -> Dict:
         """
-        分析价格位置
+        Analyze price position
         
         Args:
-            df: K线数据（必须包含 'high' 和 'low' 列）
-            current_price: 当前价格
-            timeframe: 时间周期（用于确定 lookback）
+            df: K-line data (must contain 'high' and 'low' columns)
+            current_price: Current price
+            timeframe: Timeframe (used to determine lookback)
             
         Returns:
             {
-                'range_high': float,        # 区间最高价
-                'range_low': float,         # 区间最低价
-                'range_size': float,        # 区间大小
-                'position_pct': float,      # 位置百分比 (0-100)
-                'location': PriceLocation,  # 位置分类
-                'quality': PositionQuality, # 质量评级
-                'allow_long': bool,         # 是否允许做多
-                'allow_short': bool,        # 是否允许做空
-                'reason': str               # 分析原因
+                'range_high': float,        # Range high
+                'range_low': float,         # Range low
+                'range_size': float,        # Range size
+                'position_pct': float,      # Position percentage (0-100)
+                'location': PriceLocation,  # Location classification
+                'quality': PositionQuality, # Quality rating
+                'allow_long': bool,         # Whether long is allowed
+                'allow_short': bool,        # Whether short is allowed
+                'reason': str               # Analysis reason
             }
         """
         
-        # 1. 确定 lookback 周期
+        # 1. Determine lookback period
         if timeframe == '5m':
-            lookback = self.lookback_4h  # 4小时
+            lookback = self.lookback_4h  # 4 hours
         elif timeframe == '15m':
-            lookback = self.lookback_4h // 3  # 约4小时
+            lookback = self.lookback_4h // 3  # ~4 hours
         elif timeframe == '1h':
-            lookback = self.lookback_4h // 12  # 约4小时
+            lookback = self.lookback_4h // 12  # ~4 hours
         else:
             lookback = self.lookback_4h
         
-        # 确保有足够的数据
+        # Ensure sufficient data
         lookback = min(lookback, len(df))
         
-        # 2. 计算区间高低点
+        # 2. Calculate range high and low
         recent_data = df.tail(lookback)
         range_high = recent_data['high'].max()
         range_low = recent_data['low'].min()

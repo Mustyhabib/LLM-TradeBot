@@ -2,10 +2,10 @@
 LLM-TradeBot Backtesting System
 ================================
 
-回测系统模块，支持：
-- 历史数据回放
-- 策略性能评估
-- 可视化分析报告
+Backtesting system module, supporting:
+- Historical data replay
+- Strategy performance evaluation
+- Visualized analysis report
 
 Author: AI Trader Team
 Date: 2025-12-31

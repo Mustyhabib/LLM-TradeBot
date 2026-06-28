@@ -1,16 +1,16 @@
 """
-技术特征工程模块
+Technical Feature Engineering Module
 
-基于 Step2 的技术指标构建高级特征，用于：
-1. 规则策略的增强决策
-2. 机器学习模型训练
-3. LLM 上下文输入
+Build advanced features based on Step2 technical indicators, used for:
+1. Enhanced decision-making for rule-based strategies
+2. Machine learning model training
+3. LLM context input
 
-设计原则：
-- 输入：Step2 的 31 列技术指标
-- 输出：50+ 列高级特征
-- 所有特征都有明确的金融意义
-- 避免数据泄露（不使用未来数据）
+Design principles:
+- Input: Step2's 31-column technical indicators
+- Output: 50+ columns of advanced features
+- All features have clear financial meaning
+- Avoid data leakage (no future data used)
 """
 
 import pandas as pd
@@ -20,9 +20,9 @@ from src.utils.logger import log
 
 
 class TechnicalFeatureEngineer:
-    """技术特征工程器"""
+    """Technical Feature Engineer"""
     
-    # 特征版本（用于追踪特征定义变更）
+    # Feature version (for tracking feature definition changes)
     FEATURE_VERSION = 'v1.0'
     
     def __init__(self):
@@ -31,56 +31,56 @@ class TechnicalFeatureEngineer:
     
     def build_features(self, df: pd.DataFrame) -> pd.DataFrame:
         """
-        基于技术指标构建高级特征
+        Build advanced features based on technical indicators
         
         Args:
-            df: Step2 输出的 DataFrame（含技术指标）
+            df: Step2 output DataFrame (with technical indicators)
             
         Returns:
-            扩展后的 DataFrame（原有列 + 新增特征列）
+            Extended DataFrame (original columns + new feature columns)
             
-        特征分类：
-        1. 价格相对位置特征（8个）
-        2. 趋势强度特征（10个）
-        3. 动量特征（8个）
-        4. 波动率特征（8个）
-        5. 成交量特征（8个）
-        6. 多指标组合特征（8个）
+        Feature categories:
+        1. Price relative position features (8)
+        2. Trend strength features (10)
+        3. Momentum features (8)
+        4. Volatility features (8)
+        5. Volume features (8)
+        6. Multi-indicator composite features (8)
         """
-        log.info(f"开始特征工程: 原始列数={len(df.columns)}")
+        log.info(f"Starting feature engineering: original columns={len(df.columns)}")
         
-        # 复制数据，避免修改原始 DataFrame
+        # Copy data to avoid modifying original DataFrame
         df_features = df.copy()
         
-        # 1. 价格相对位置特征
+        # 1. Price relative position features
         df_features = self._build_price_position_features(df_features)
         
-        # 2. 趋势强度特征
+        # 2. Trend strength features
         df_features = self._build_trend_strength_features(df_features)
         
-        # 3. 动量特征
+        # 3. Momentum features
         df_features = self._build_momentum_features(df_features)
         
-        # 4. 波动率特征
+        # 4. Volatility features
         df_features = self._build_volatility_features(df_features)
         
-        # 5. 成交量特征
+        # 5. Volume features
         df_features = self._build_volume_features(df_features)
         
-        # 6. 多指标组合特征
+        # 6. Multi-indicator composite features
         df_features = self._build_composite_features(df_features)
         
-        # 记录特征信息
+        # Record feature information
         new_features = set(df_features.columns) - set(df.columns)
         self.feature_count = len(new_features)
         self.feature_names = sorted(list(new_features))
         
         log.info(
-            f"特征工程完成: 新增特征={self.feature_count}, "
-            f"总列数={len(df_features.columns)}"
+            f"Feature engineering complete: new features={self.feature_count}, "
+            f"total columns={len(df_features.columns)}"
         )
         
-        # 添加特征元数据
+        # Add feature metadata
         df_features.attrs['feature_version'] = self.FEATURE_VERSION
         df_features.attrs['feature_count'] = self.feature_count
         df_features.attrs['feature_names'] = self.feature_names
@@ -89,31 +89,31 @@ class TechnicalFeatureEngineer:
     
     def _build_price_position_features(self, df: pd.DataFrame) -> pd.DataFrame:
         """
-        构建价格相对位置特征
+        Build price relative position features
         
-        金融意义：衡量当前价格在各种技术参考点的位置
+        Financial meaning: measures the current price position relative to various technical reference points
         """
-        # 1. 价格相对于移动平均线的位置
+        # 1. Price position relative to moving averages
         df['price_to_sma20_pct'] = ((df['close'] - df['sma_20']) / df['sma_20'] * 100)
         df['price_to_sma50_pct'] = ((df['close'] - df['sma_50']) / df['sma_50'] * 100)
         df['price_to_ema12_pct'] = ((df['close'] - df['ema_12']) / df['ema_12'] * 100)
         df['price_to_ema26_pct'] = ((df['close'] - df['ema_26']) / df['ema_26'] * 100)
         
-        # 2. 价格在布林带中的位置（0-100，50为中轴）
+        # 2. Price position in Bollinger Bands (0-100, 50 is midline)
         df['bb_position'] = np.where(
             (df['bb_upper'] - df['bb_lower']) > 0,
             (df['close'] - df['bb_lower']) / (df['bb_upper'] - df['bb_lower']) * 100,
-            50  # 布林带宽度为0时，认为在中轴
+            50  # When Bollinger Band width is 0, consider at midline
         )
         
-        # 3. 价格相对于 VWAP 的偏离
+        # 3. Price deviation from VWAP
         df['price_to_vwap_pct'] = np.where(
             df['vwap'] > 0,
             (df['close'] - df['vwap']) / df['vwap'] * 100,
             0
         )
         
-        # 4. 当前价格在最近 K 线高低点的位置
+        # 4. Current price position relative to recent K-line high/low
         df['price_to_recent_high_pct'] = (
             (df['close'] - df['high'].rolling(20).max()) / 
             df['high'].rolling(20).max() * 100

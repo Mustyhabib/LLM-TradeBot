@@ -1,8 +1,8 @@
 """
-MiniMax 客户端实现
-==================
+MiniMax Client Implementation
+==============================
 
-MiniMax 使用 OpenAI 兼容 API。
+MiniMax uses an OpenAI-compatible API.
 """
 
 from .openai_client import OpenAIClient
@@ -10,9 +10,9 @@ from .openai_client import OpenAIClient
 
 class MiniMaxClient(OpenAIClient):
     """
-    MiniMax 客户端
+    MiniMax client
 
-    使用 MiniMax 平台的 OpenAI 兼容接口。
+    Uses the OpenAI-compatible interface of the MiniMax platform.
     """
 
     DEFAULT_BASE_URL = "https://api.minimax.io/v1"

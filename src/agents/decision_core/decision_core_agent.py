@@ -1,13 +1,13 @@
 """
-⚖️ 对抗评论员 (The Critic) Agent
+⚖️ The Adversarial Critic (The Critic) Agent
 ===========================================
 
-职责:
-1. 加权投票机制 - 整合量化分析师的多个信号源
-2. 动态权重调整 - 根据历史表现调整各信号权重
-3. 多周期对齐决策 - 优先级: 1h > 15m > 5m
-4. LLM决策增强 - 将量化信号作为上下文传递给DeepSeek
-5. 最终决策输出 - 统一格式{action, confidence, reason}
+Responsibilities:
+1. Weighted voting mechanism - Integrate multiple signal sources from the Quant Analyst
+2. Dynamic weight adjustment - Adjust signal weights based on historical performance
+3. Multi-period alignment decision - Priority: 1h > 15m > 5m
+4. LLM decision enhancement - Pass quantitative signals as context to DeepSeek
+5. Final decision output - Unified format {action, confidence, reason}
 
 Author: AI Trader Team
 Date: 2025-12-19
@@ -30,26 +30,26 @@ from .vote_result import VoteResult
 from .overtrading_guard import OvertradingGuard
 
 class DecisionCoreAgent:
-    """对抗评论员 (The Critic)
+    """The Adversarial Critic (The Critic)
     
-    核心功能:
-    - 加权投票: 根据可配置权重整合多个信号
-    - 多周期对齐: 检测多周期趋势一致性
-    - 市场感知: 集成位置感知和状态检测
-    - 信心增强: 基于市场状态和价格位置校准信心度
+    Core functions:
+    - Weighted voting: Integrate multiple signals based on configurable weights
+    - Multi-period alignment: Detect multi-period trend consistency
+    - Market awareness: Integrate position sensing and regime detection
+    - Confidence enhancement: Calibrate confidence based on market regime and price position
     """
     
     def __init__(self, weights: Optional[SignalWeight] = None):
         """
-        初始化对抗评论员 (The Critic)
+        Initialize the Adversarial Critic (The Critic)
         
         Args:
-            weights: 自定义信号权重（默认使用内置配置）
+            weights: Custom signal weights (defaults to built-in configuration)
         """
         self.weights = weights or SignalWeight()
-        self.history: List[VoteResult] = []  # 历史决策记录
+        self.history: List[VoteResult] = []  # Decision history records
         
-        # 初始化辅助分析器
+        # Initialize auxiliary analyzers
         self.position_analyzer = PositionAnalyzer()
         self.regime_detector = RegimeDetector()
         
@@ -62,9 +62,9 @@ class DecisionCoreAgent:
             'oscillator_1h': {'total': 0, 'correct': 0},
         }
         
-        # 初始化交易防护
+        # Initialize overtrading guard
         self.overtrading_guard = OvertradingGuard()
-        self.current_cycle = 0  # 当前周期计数
+        self.current_cycle = 0  # Current cycle counter
         
     async def make_decision(
         self, 
@@ -73,26 +73,26 @@ class DecisionCoreAgent:
         market_data: Optional[Dict] = None
     ) -> VoteResult:
         """
-        执行加权投票决策
+        Execute weighted voting decision
         
         Args:
-            quant_analysis: QuantAnalystAgent的输出
-            predict_result: PredictAgent的输出 (ML预测)
-            market_data: 包含 df_5m, df_15m, df_1h 和 current_price 的原始市场数据
+            quant_analysis: Output from QuantAnalystAgent
+            predict_result: Output from PredictAgent (ML prediction)
+            market_data: Raw market data containing df_5m, df_15m, df_1h and current_price
             
         Returns:
-            VoteResult对象
+            VoteResult object
         """
-        # 更新周期计数
+        # Update cycle counter
         self.current_cycle += 1
         symbol = quant_analysis.get('symbol', 'UNKNOWN')
         
-        # ========== 过度交易检查 ==========
+        # ========== Overtrading check ==========
         overtrade_allowed, overtrade_reason = self.overtrading_guard.can_open_position(
             symbol, self.current_cycle
         )
         
-        # 1. 提取各信号分数
+        # 1. Extract individual signal scores
         # Fix: Read from granular scores provided by QuantAnalystAgent
         trend_data = quant_analysis.get('trend', {})
         osc_data = quant_analysis.get('oscillator', {})
@@ -109,9 +109,9 @@ class DecisionCoreAgent:
             'sentiment': sentiment_data.get('total_sentiment_score', 0)
         }
         
-        # 集成 Prophet 预测得分
+        # Integrate Prophet prediction score
         if predict_result:
-            # 将概率 (0~1) 映射到分数 (-100~+100)
+            # Map probability (0~1) to score (-100~+100)
             # 0.5 -> 0, 1.0 -> 100, 0.0 -> -100
             prob = predict_result.probability_up
             prophet_score = (prob - 0.5) * 200
@@ -119,12 +119,12 @@ class DecisionCoreAgent:
         else:
             scores['prophet'] = 0.0
         
-        # 计算动态 sentiment 权重 (有数据时使用配置权重，无数据时为 0)
+        # Calculate dynamic sentiment weight (use config weight when data exists, otherwise 0)
         has_sentiment = scores.get('sentiment', 0) != 0
         w_sentiment = self.weights.sentiment if has_sentiment else 0.0
         w_others = 1.0 - w_sentiment
 
-        # 2. 市场状态与位置分析
+        # 2. Market regime and position analysis
         regime = None
         position = None
         if market_data:
@@ -136,7 +136,7 @@ class DecisionCoreAgent:
 
         volume_ratio = self._get_volume_ratio(market_data.get('df_5m') if market_data else None)
 
-        # 3. 加权计算（得分范围-100~+100）
+        # 3. Weighted calculation (score range -100~+100)
         weighted_score = (
             (scores['trend_5m'] * self.weights.trend_5m +
              scores['trend_15m'] * self.weights.trend_15m +
@@ -148,7 +148,7 @@ class DecisionCoreAgent:
             (scores.get('sentiment', 0) * w_sentiment)
         )
         
-        # 4. 计算各信号的实际贡献分 (用于 dashboard 显示)
+        # 4. Calculate actual contribution score for each signal (for dashboard display)
         vote_details = {
             'trend_5m': scores['trend_5m'] * self.weights.trend_5m * w_others,
             'trend_15m': scores['trend_15m'] * self.weights.trend_15m * w_others,
@@ -161,7 +161,7 @@ class DecisionCoreAgent:
         }
         osc_bias = (scores['oscillator_5m'] + scores['oscillator_15m'] + scores['oscillator_1h']) / 3
 
-        # 5. 提前过滤逻辑：震荡市+位置不佳（强信号可放行）
+        # 5. Early filter logic: choppy market + poor position (strong signals may pass)
         if regime and position:
             if regime['regime'] == 'choppy' and position['location'] == 'middle' and abs(weighted_score) < 30:
                 result = VoteResult(
@@ -170,21 +170,21 @@ class DecisionCoreAgent:
                     weighted_score=0,
                     vote_details=vote_details,
                     multi_period_aligned=False,
-                    reason=f"对抗式过滤: 震荡市且价格处于区间中部({position['position_pct']:.1f}%)，禁止开仓",
+                    reason=f"Adversarial filter: choppy market and price in middle of range ({position['position_pct']:.1f}%), opening positions prohibited",
                     regime=regime,
                     position=position
                 )
                 self.history.append(result)
                 return result
         
-        # 6. 多周期对齐检测
+        # 6. Multi-period alignment detection
         aligned, alignment_reason = self._check_multi_period_alignment(
             scores['trend_1h'],
             scores['trend_15m'],
             scores['trend_5m']
         )
         
-        # ========== Phase 4: 震荡市策略分支 ==========
+        # ========== Phase 4: Choppy market strategy branch ==========
         is_choppy_market = False
         if regime:
             regime_type = (regime.get('regime', '') or '').lower()
@@ -192,131 +192,131 @@ class DecisionCoreAgent:
                 is_choppy_market = True
         
         if is_choppy_market:
-            # 震荡市：使用均值回归策略
-            log.info(f"🔄 [震荡市检测] 切换到均值回归策略")
+            # Choppy market: use mean reversion strategy
+            log.info(f"🔄 [Choppy market detected] Switching to mean reversion strategy")
             action, base_confidence, alignment_reason = self._evaluate_choppy_strategy(
                 quant_analysis, position
             )
         else:
-            # 趋势市：使用原有趋势策略
+            # Trending market: use original trend strategy
             action, base_confidence = self._score_to_action(weighted_score, aligned, regime)
         action = normalize_action(action)
 
-        # ========== 对齐弱时收紧趋势强度 ==========
+        # ========== Tighten trend strength when alignment is weak ==========
         if is_open_action(action) and regime and not aligned:
             adx = regime.get('adx', 0)
             if adx < 25:
-                log.warning(f"🚫 对齐弱且ADX不足: ADX {adx:.1f} < 25")
+                log.warning(f"🚫 Weak alignment and insufficient ADX: ADX {adx:.1f} < 25")
                 action = 'hold'
                 base_confidence = 0.1
-                alignment_reason = f"对齐弱且ADX不足(ADX {adx:.1f} < 25)"
+                alignment_reason = f"Weak alignment and insufficient ADX (ADX {adx:.1f} < 25)"
 
-        # ========== 低量/弱趋势过滤 (Phase 3: 放宽量能要求) ==========
+        # ========== Low volume/weak trend filter (Phase 3: relaxed volume requirement) ==========
         if is_open_action(action) and regime:
             adx = regime.get('adx', 0)
-            # Phase 3: 放宽低量过滤 (0.7 -> 0.5)
+            # Phase 3: Relaxed low-volume filter (0.7 -> 0.5)
             if volume_ratio is not None and volume_ratio < 0.5:
-                log.warning(f"🚫 低量过滤: RVOL {volume_ratio:.2f} < 0.5")
+                log.warning(f"🚫 Low volume filter: RVOL {volume_ratio:.2f} < 0.5")
                 action = 'hold'
                 base_confidence = 0.1
-                alignment_reason = f"低量过滤(RVOL {volume_ratio:.2f} < 0.5)"
+                alignment_reason = f"Low volume filter (RVOL {volume_ratio:.2f} < 0.5)"
             elif volume_ratio is not None and adx < 20 and volume_ratio < 0.8:
-                if abs(weighted_score) < 40:  # Phase 2: 提高强信号阈值
-                    log.warning(f"🚫 低量/弱趋势过滤: ADX {adx:.1f}, RVOL {volume_ratio:.2f}")
+                if abs(weighted_score) < 40:  # Phase 2: raised strong signal threshold
+                    log.warning(f"🚫 Low volume/weak trend filter: ADX {adx:.1f}, RVOL {volume_ratio:.2f}")
                     action = 'hold'
                     base_confidence = 0.1
-                    alignment_reason = f"低量/弱趋势过滤(ADX {adx:.1f}, RVOL {volume_ratio:.2f})"
+                    alignment_reason = f"Low volume/weak trend filter (ADX {adx:.1f}, RVOL {volume_ratio:.2f})"
                 else:
                     # Strong signal but weak volume: reduce confidence
-                    base_confidence *= 0.80  # Phase 2: 更强惩罚
-                    alignment_reason += f" | 低量降信心(ADX {adx:.1f}, RVOL {volume_ratio:.2f})"
-            # Phase 2: 高成交量加分
+                    base_confidence *= 0.80  # Phase 2: stronger penalty
+                    alignment_reason += f" | Low volume confidence reduction (ADX {adx:.1f}, RVOL {volume_ratio:.2f})"
+            # Phase 2: High volume bonus
             elif volume_ratio is not None and volume_ratio > 1.5:
                 base_confidence = min(base_confidence * 1.15, 0.95)
-                alignment_reason += f" | 高量确认(RVOL {volume_ratio:.2f})"
+                alignment_reason += f" | High volume confirmation (RVOL {volume_ratio:.2f})"
 
-        # ========== 交易防护拦截 ==========
+        # ========== Overtrading guard interception ==========
         if is_open_action(action):
-            # 检查过度交易
+            # Check overtrading
             if not overtrade_allowed:
-                log.warning(f"🚫 过度交易防护: {overtrade_reason}")
+                log.warning(f"🚫 Overtrading guard: {overtrade_reason}")
                 action = 'hold'
                 base_confidence = 0.1
                 alignment_reason = overtrade_reason
         
-        # ========== 市场陷阱与形态过滤 (User Experience Logic) ==========
+        # ========== Market trap and pattern filter (User Experience Logic) ==========
         if is_open_action(action):
-            # 1. 诱多风险 (Rapid Rise, Slow Fall)
+            # 1. Bull trap risk (Rapid Rise, Slow Fall)
             if traps.get('bull_trap_risk') and action == 'open_long':
-                log.warning(f"🚫 诱多风险拦截: 急涨缓跌形态 detected")
+                log.warning(f"🚫 Bull trap risk interception: rapid rise slow fall pattern detected")
                 action = 'hold'
                 base_confidence = 0.1
-                alignment_reason = "诱多风险(急涨缓跌)，禁止追高"
+                alignment_reason = "Bull trap risk (rapid rise, slow fall), chasing highs prohibited"
             
-            # 2. 弱反弹 (Weak Rebound)
+            # 2. Weak Rebound
             if traps.get('weak_rebound') and action == 'open_long':
-                # 弱反弹不一定完全禁止，但大幅降低信心
+                # Weak rebound not necessarily fully blocked, but significantly reduce confidence
                 base_confidence *= 0.5
-                alignment_reason += " | 弱反弹警示(缩量反弹)"
-                if base_confidence < 0.6: # 如果信心降得太低，直接转hold
+                alignment_reason += " | Weak rebound warning (low-volume rebound)"
+                if base_confidence < 0.6: # If confidence drops too low, convert to hold
                      action = 'hold'
-                     alignment_reason = "弱反弹(缩量)信心不足，放弃做多"
+                     alignment_reason = "Weak rebound (low volume) insufficient confidence, abandoning long"
 
-            # 3. 量价背离 (High Price, Low Volume)
+            # 3. Volume divergence (High Price, Low Volume)
             if traps.get('volume_divergence'):
                 if action == 'open_long':
                     base_confidence *= 0.7
-                    alignment_reason += " | 量价背离警示(高位缩量)"
+                    alignment_reason += " | Volume divergence warning (high price, low volume)"
                 elif action == 'open_short':
-                    base_confidence = min(base_confidence * 1.2, 0.95) # 稍微增加做空信心
-                    alignment_reason += " | 量价背离确认(高位缩量)"
+                    base_confidence = min(base_confidence * 1.2, 0.95) # Slightly increase short confidence
+                    alignment_reason += " | Volume divergence confirmation (high price, low volume)"
             
-            # 4. 底部吸筹 (Accumulation)
+            # 4. Bottom accumulation
             if traps.get('accumulation'):
                  if action == 'open_long':
                      base_confidence = min(base_confidence * 1.2, 0.95)
-                     alignment_reason += " | 底部吸筹确认(放量不跌)"
+                     alignment_reason += " | Bottom accumulation confirmation (high volume, no decline)"
 
-            # 5. 逆向情绪 (Contrarian Emotion)
+            # 5. Contrarian emotion
             if traps.get('panic_bottom'):
                 if action == 'open_long':
-                    base_confidence = min(base_confidence * 1.3, 0.95) # 强力加分
-                    alignment_reason += " | 恐慌抛售契机(超卖+放量)"
+                    base_confidence = min(base_confidence * 1.3, 0.95) # Strong bonus
+                    alignment_reason += " | Panic selling opportunity (oversold + high volume)"
                 elif action == 'open_short':
-                    log.warning("🚫 恐慌抛售底部(Panic Bottom)拦截做空")
+                    log.warning("🚫 Panic bottom (Panic Bottom) short interception")
                     action = 'hold'
                     base_confidence = 0.1
-                    alignment_reason = "恐慌抛售底部，禁止追空"
+                    alignment_reason = "Panic selling bottom, chasing shorts prohibited"
 
             if traps.get('fomo_top'):
                 if action == 'open_short':
                     base_confidence = min(base_confidence * 1.3, 0.95)
-                    alignment_reason += " | FOMO顶部衰竭(超买+放量)"
+                    alignment_reason += " | FOMO top exhaustion (overbought + high volume)"
                 elif action == 'open_long':
-                    log.warning("🚫 FOMO顶部(FOMO Top)拦截做多")
+                    log.warning("🚫 FOMO top (FOMO Top) long interception")
                     action = 'hold'
                     base_confidence = 0.1
-                    alignment_reason = "FOMO顶部衰竭，禁止追高"
+                    alignment_reason = "FOMO top exhaustion, chasing highs prohibited"
         
-        # 8. 综合信心度校准与对抗审计
+        # 8. Comprehensive confidence calibration and adversarial audit
         final_confidence = base_confidence * 100
         
-        # --- 对抗式审计: 机构资金流背离检查 ---
+        # --- Adversarial audit: institutional capital flow divergence check ---
         sent_details = quant_analysis.get('sentiment', {}).get('details', {})
         inst_nf_1h = sent_details.get('inst_netflow_1h', 0)
         
-        if action == 'open_long' and inst_nf_1h < -1000000: # 1h 机构净流出超过 1M
+        if action == 'open_long' and inst_nf_1h < -1000000: # 1h institutional net outflow exceeds 1M
             final_confidence *= 0.5
-            alignment_reason += " | 对抗警告: 技术看多但机构资金大额流出 (背离)"
-        elif action == 'open_short' and inst_nf_1h > 1000000: # 1h 机构净流入超过 1M
+            alignment_reason += " | Adversarial warning: technical bullish but large institutional outflow (divergence)"
+        elif action == 'open_short' and inst_nf_1h > 1000000: # 1h institutional net inflow exceeds 1M
             final_confidence *= 0.5
-            alignment_reason += " | 对抗警告: 技术看空但机构资金大额流入 (背离)"
+            alignment_reason += " | Adversarial warning: technical bearish but large institutional inflow (divergence)"
 
         if regime and position:
             final_confidence = self._calculate_comprehensive_confidence(
                 final_confidence, regime, position, aligned
             )
-            # 位置约束：极端高位/低位仅允许强趋势信号
+            # Position constraint: extreme high/low positions only allow strong trend signals
             regime_type = (regime.get('regime', '') or '').lower()
             adx = regime.get('adx', 0)
             position_pct = position.get('position_pct', 50.0)
@@ -341,32 +341,32 @@ class DecisionCoreAgent:
                     if high_extreme:
                         if strong_long and osc_bias > -20:
                             final_confidence *= 0.9
-                            alignment_reason += f" | 极高位做多降信心({position_pct:.1f}%)"
+                            alignment_reason += f" | Extreme high long confidence reduction ({position_pct:.1f}%)"
                         elif very_strong_long and osc_bias > -25:
                             final_confidence *= 0.8
-                            alignment_reason += f" | 极高位强信号降信心({position_pct:.1f}%)"
+                            alignment_reason += f" | Extreme high strong signal confidence reduction ({position_pct:.1f}%)"
                         else:
                             final_confidence *= 0.6
-                            alignment_reason += f" | 极高位做多过滤({position_pct:.1f}%)"
+                            alignment_reason += f" | Extreme high long filter ({position_pct:.1f}%)"
                     elif high_zone and osc_bias <= -30 and (fade_long or not aligned):
                         final_confidence *= 0.8
-                        alignment_reason += f" | 高位超买降信心({position_pct:.1f}%)"
+                        alignment_reason += f" | High zone overbought confidence reduction ({position_pct:.1f}%)"
                 elif action == 'open_short':
                     if low_extreme:
                         if strong_short and osc_bias < 20:
                             final_confidence *= 0.9
-                            alignment_reason += f" | 极低位做空降信心({position_pct:.1f}%)"
+                            alignment_reason += f" | Extreme low short confidence reduction ({position_pct:.1f}%)"
                         elif very_strong_short and osc_bias < 25:
                             final_confidence *= 0.8
-                            alignment_reason += f" | 极低位强信号降信心({position_pct:.1f}%)"
+                            alignment_reason += f" | Extreme low strong signal confidence reduction ({position_pct:.1f}%)"
                         else:
                             final_confidence *= 0.6
-                            alignment_reason += f" | 极低位做空过滤({position_pct:.1f}%)"
+                            alignment_reason += f" | Extreme low short filter ({position_pct:.1f}%)"
                     elif low_zone and osc_bias >= 30 and (fade_short or not aligned):
                         final_confidence *= 0.8
-                        alignment_reason += f" | 低位超卖降信心({position_pct:.1f}%)"
+                        alignment_reason += f" | Low zone oversold confidence reduction ({position_pct:.1f}%)"
 
-        # 9. 生成决策原因
+        # 9. Generate decision reason
         reason = self._generate_reason(
             weighted_score, 
             aligned, 
@@ -376,10 +376,10 @@ class DecisionCoreAgent:
             regime=regime
         )
         
-        # 10. 计算动态交易参数 (新增)
+        # 10. Calculate dynamic trading parameters (new)
         trade_params = self._calculate_trade_params(regime, position, final_confidence, action)
         
-        # 11. 构建结果
+        # 11. Build result
         result = VoteResult(
             action=action,
             confidence=final_confidence,
@@ -393,7 +393,7 @@ class DecisionCoreAgent:
             traps=traps
         )
         
-        # 12. 记录历史
+        # 12. Record history
         self.history.append(result)
         
         return result
@@ -421,9 +421,9 @@ class DecisionCoreAgent:
 
     async def vote(self, snapshot: Any, quant_analysis: Dict) -> VoteResult:
         """
-        兼容性接口: 调用 make_decision
+        Compatibility interface: calls make_decision
         """
-        # 将 snapshot 转换为 market_data 格式供 make_decision 使用
+        # Convert snapshot to market_data format for use by make_decision
         market_data = {
             'df_5m': snapshot.stable_5m if hasattr(snapshot, 'stable_5m') else None,
             'current_price': snapshot.live_5m.get('close', 0) if hasattr(snapshot, 'live_5m') else 0

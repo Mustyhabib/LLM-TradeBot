@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-策略对比回测脚本
-比较默认策略 vs 优化V2策略
+Strategy Comparison Backtest Script
+Compare default strategy vs optimized V2 strategy
 """
 
 import asyncio
@@ -16,29 +16,29 @@ from src.strategies.optimized_v2 import strategy_v2_wrapper, StrategyConfig
 
 
 async def run_strategy_comparison(
-    symbol: str = "SOLUSDT",  # 使用之前表现最好的币种
+    symbol: str = "SOLUSDT",  # Use the best performing symbol from previous runs
     days: int = 1
 ):
-    """运行策略对比"""
+    """Run strategy comparison"""
     
-    end_date = datetime.now() - timedelta(days=1)  # 使用昨天作为结束，避免数据不完整
+    end_date = datetime.now() - timedelta(days=1)  # Use yesterday as end to avoid incomplete data
     start_date = end_date - timedelta(days=days)
     
     start_str = start_date.strftime("%Y-%m-%d")
     end_str = end_date.strftime("%Y-%m-%d")
     
     print("\n" + "="*70)
-    print("🔬 策略对比回测")
+    print("🔬 Strategy Comparison Backtest")
     print("="*70)
-    print(f"📊 币种: {symbol}")
-    print(f"📅 周期: {start_str} to {end_str}")
-    print(f"💰 初始资金: $10,000")
+    print(f"📊 Symbol: {symbol}")
+    print(f"📅 Period: {start_str} to {end_str}")
+    print(f"💰 Initial Capital: $10,000")
     print("="*70)
     
     results = []
     
-    # 1️⃣ 测试默认策略 (technical)
-    print("\n📈 1. 测试默认策略 (Technical)...")
+    # 1️⃣ Test default strategy (technical)
+    print("\n📈 1. Testing default strategy (Technical)...")
     
     config1 = BacktestConfig(
         symbol=symbol,
@@ -60,17 +60,17 @@ async def run_strategy_comparison(
             'sharpe': result1.metrics.sharpe_ratio,
             'max_dd': result1.metrics.max_drawdown_pct,
         })
-        print(f"   ✅ 收益率: {result1.metrics.total_return:+.2f}%")
+        print(f"   ✅ Return: {result1.metrics.total_return:+.2f}%")
     except Exception as e:
-        print(f"   ❌ 错误: {e}")
+        print(f"   ❌ Error: {e}")
         results.append({
             'name': 'Default (Technical)',
             'return': None,
             'error': str(e)
         })
-    
-    # 2️⃣ 测试优化V2策略
-    print("\n📈 2. 测试优化V2策略...")
+
+    # 2️⃣ Test optimized V2 strategy
+    print("\n📈 2. Testing optimized V2 strategy...")
     
     config2 = BacktestConfig(
         symbol=symbol,
@@ -78,12 +78,12 @@ async def run_strategy_comparison(
         end_date=end_str,
         initial_capital=10000,
         step=3,
-        strategy_mode="technical",  # 使用technical模式但注入自定义策略
+        strategy_mode="technical",  # Use technical mode but inject custom strategy
     )
     
     try:
         engine2 = BacktestEngine(config2)
-        # 注入优化策略
+        # Inject optimized strategy
         engine2.strategy_fn = strategy_v2_wrapper
         
         result2 = await engine2.run()
@@ -95,17 +95,17 @@ async def run_strategy_comparison(
             'sharpe': result2.metrics.sharpe_ratio,
             'max_dd': result2.metrics.max_drawdown_pct,
         })
-        print(f"   ✅ 收益率: {result2.metrics.total_return:+.2f}%")
+        print(f"   ✅ Return: {result2.metrics.total_return:+.2f}%")
     except Exception as e:
-        print(f"   ❌ 错误: {e}")
+        print(f"   ❌ Error: {e}")
         results.append({
             'name': 'Optimized V2',
             'return': None,
             'error': str(e)
         })
-    
-    # 3️⃣ 测试激进版V2策略 (更低入场门槛)
-    print("\n📈 3. 测试激进V2策略 (低门槛)...")
+
+    # 3️⃣ Test aggressive V2 strategy (lower entry threshold)
+    print("\n📈 3. Testing aggressive V2 strategy (low threshold)...")
     
     config3 = BacktestConfig(
         symbol=symbol,
@@ -116,13 +116,13 @@ async def run_strategy_comparison(
         strategy_mode="technical",
     )
     
-    # 创建激进配置
+    # Create aggressive config
     aggressive_config = StrategyConfig(
-        rsi_oversold=40,  # 更宽松
+        rsi_oversold=40,  # More relaxed
         rsi_overbought=60,
-        ema_fast=5,  # 更快
+        ema_fast=5,  # Faster
         ema_slow=13,
-        rvol_threshold=1.0,  # 不要求高成交量
+        rvol_threshold=1.0,  # No high volume requirement
     )
     
     async def aggressive_strategy(snapshot, portfolio, current_price, config):
@@ -142,21 +142,21 @@ async def run_strategy_comparison(
             'sharpe': result3.metrics.sharpe_ratio,
             'max_dd': result3.metrics.max_drawdown_pct,
         })
-        print(f"   ✅ 收益率: {result3.metrics.total_return:+.2f}%")
+        print(f"   ✅ Return: {result3.metrics.total_return:+.2f}%")
     except Exception as e:
-        print(f"   ❌ 错误: {e}")
+        print(f"   ❌ Error: {e}")
         results.append({
             'name': 'Aggressive V2',
             'return': None,
             'error': str(e)
         })
-    
-    # 打印对比结果
+
+    # Print comparison results
     print("\n" + "="*70)
-    print("📊 策略对比结果")
+    print("📊 Strategy Comparison Results")
     print("="*70)
     
-    print(f"\n{'策略名称':<20} {'收益率':>10} {'胜率':>10} {'交易次数':>10} {'Sharpe':>10} {'最大回撤':>10}")
+    print(f"\n{'Strategy Name':<20} {'Return':>10} {'Win Rate':>10} {'Trades':>10} {'Sharpe':>10} {'Max Drawdown':>10}")
     print("-"*70)
     
     for r in results:
@@ -165,37 +165,37 @@ async def run_strategy_comparison(
         else:
             print(f"{r['name']:<20} {'ERROR':>10}")
     
-    # 找出最佳策略
+    # Find the best strategy
     valid_results = [r for r in results if r.get('return') is not None]
     if valid_results:
         best = max(valid_results, key=lambda x: x['return'])
         print("\n" + "="*70)
-        print(f"🏆 最佳策略: {best['name']}")
-        print(f"   收益率: {best['return']:+.2f}%")
-        print(f"   胜率: {best['win_rate']:.1f}%")
-        print(f"   交易次数: {best['trades']}")
+        print(f"🏆 Best Strategy: {best['name']}")
+        print(f"   Return: {best['return']:+.2f}%")
+        print(f"   Win Rate: {best['win_rate']:.1f}%")
+        print(f"   Trades: {best['trades']}")
         print("="*70)
     
     return results
 
 
 async def run_multi_symbol_comparison():
-    """多币种对比测试"""
+    """Multi-symbol comparison test"""
     
     symbols = ["SOLUSDT", "BTCUSDT", "ETHUSDT"]
     all_results = {}
     
     for symbol in symbols:
         print(f"\n\n{'#'*70}")
-        print(f"# 测试币种: {symbol}")
+        print(f"# Testing symbol: {symbol}")
         print(f"{'#'*70}")
         
         results = await run_strategy_comparison(symbol=symbol, days=1)
         all_results[symbol] = results
     
-    # 汇总
+    # Summary
     print("\n\n" + "="*70)
-    print("📊 多币种策略汇总")
+    print("📊 Multi-Symbol Strategy Summary")
     print("="*70)
     
     for symbol, results in all_results.items():
@@ -208,10 +208,10 @@ async def run_multi_symbol_comparison():
 if __name__ == "__main__":
     import argparse
     
-    parser = argparse.ArgumentParser(description="策略对比回测")
-    parser.add_argument("--symbol", type=str, default="SOLUSDT", help="交易对")
-    parser.add_argument("--days", type=int, default=1, help="回测天数")
-    parser.add_argument("--multi", action="store_true", help="多币种测试")
+    parser = argparse.ArgumentParser(description="Strategy Comparison Backtest")
+    parser.add_argument("--symbol", type=str, default="SOLUSDT", help="Trading pair")
+    parser.add_argument("--days", type=int, default=1, help="Backtest days")
+    parser.add_argument("--multi", action="store_true", help="Multi-symbol test")
     
     args = parser.parse_args()
     

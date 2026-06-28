@@ -1,29 +1,29 @@
 # 🕵️ DataSyncAgent (The Oracle)
 
-> 数据先知 - 异步数据采集与双视图构建
+> Data Oracle - Asynchronous data acquisition and dual-view construction
 
-## 概述
+## Overview
 
-DataSyncAgent 是多 Agent 框架的数据入口，负责从 Binance 和外部量化 API 异步获取市场数据，构建双视图（Stable + Live）数据结构供下游 Agent 使用。
+DataSyncAgent is the data entry point of the multi-Agent framework, responsible for asynchronously fetching market data from Binance and external quantitative APIs, and constructing dual-view (Stable + Live) data structures for downstream Agents to use.
 
-## 核心职责
+## Core Responsibilities
 
-1. **异步并发请求** - 使用 `asyncio.gather` 同时获取多周期 K 线数据
-2. **双视图数据结构** - 分离已完成 K 线 (stable) 和当前未完成 K 线 (live)
-3. **时间对齐验证** - 确保多周期数据的时间一致性
-4. **外部数据集成** - 获取机构资金流、OI 等量化指标
+1. **Asynchronous Concurrent Requests** - Use `asyncio.gather` to fetch multi-timeframe K-line data concurrently
+2. **Dual-View Data Structure** - Separate completed candles (stable) and current incomplete candles (live)
+3. **Timestamp Alignment Validation** - Ensure time consistency across multi-timeframe data
+4. **External Data Integration** - Get institutional fund flow, OI, and other quantitative indicators
 
-## 数据流
+## Data Flow
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────┐
 │                      DataSyncAgent                               │
 ├─────────────────────────────────────────────────────────────────┤
-│ 输入：                                                           │
-│   - symbol: 交易对 (如 BTCUSDT)                                  │
-│   - limit: K 线数量 (默认 300)                                   │
+│ Input:                                                           │
+│   - symbol: Trading pair (e.g. BTCUSDT)                          │
+│   - limit: Number of K-lines (default 300)                       │
 ├─────────────────────────────────────────────────────────────────┤
-│ 并发请求：                                                        │
+│ Concurrent requests:                                              │
 │   ┌────────────┐  ┌────────────┐  ┌────────────┐                │
 │   │ 5m K-lines │  │15m K-lines │  │ 1h K-lines │                │
 │   └────────────┘  └────────────┘  └────────────┘                │
@@ -31,87 +31,87 @@ DataSyncAgent 是多 Agent 框架的数据入口，负责从 Binance 和外部�
 │   │ Quant API  │  │Funding Rate│  │    OI      │                │
 │   └────────────┘  └────────────┘  └────────────┘                │
 ├─────────────────────────────────────────────────────────────────┤
-│ 输出：MarketSnapshot                                             │
-│   - stable_5m/15m/1h: 已完成 K 线 DataFrame                      │
-│   - live_5m/15m/1h: 当前 K 线 Dict                               │
-│   - quant_data: 外部量化数据                                     │
-│   - binance_funding: 资金费率                                    │
-│   - binance_oi: 持仓量                                           │
+│ Output: MarketSnapshot                                           │
+│   - stable_5m/15m/1h: Completed K-line DataFrame                 │
+│   - live_5m/15m/1h: Current K-line Dict                         │
+│   - quant_data: External quantitative data                      │
+│   - binance_funding: Funding rate                                │
+│   - binance_oi: Open interest                                    │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-## 关键数据结构
+## Key Data Structures
 
 ### MarketSnapshot
 
 ```python
 @dataclass
 class MarketSnapshot:
-    # 5m 数据
-    stable_5m: pd.DataFrame  # 已完成 K 线 (iloc[:-1])
-    live_5m: Dict            # 当前 K 线 (iloc[-1])
+    # 5m data
+    stable_5m: pd.DataFrame  # Completed candles (iloc[:-1])
+    live_5m: Dict            # Current candle (iloc[-1])
     
-    # 15m 数据
+    # 15m data
     stable_15m: pd.DataFrame
     live_15m: Dict
     
-    # 1h 数据
+    # 1h data
     stable_1h: pd.DataFrame
     live_1h: Dict
     
-    # 元数据
+    # Metadata
     timestamp: datetime
-    alignment_ok: bool       # 时间对齐状态
-    fetch_duration: float    # 获取耗时（秒）
+    alignment_ok: bool       # Alignment status
+    fetch_duration: float    # Fetch duration (seconds)
     
-    # 量化数据
+    # Quantitative data
     quant_data: Dict
     binance_funding: Dict
     binance_oi: Dict
 ```
 
-## 核心方法
+## Core Methods
 
 ### `fetch_all_timeframes(symbol, limit)`
 
-异步并发获取所有周期数据。
+Asynchronously fetch all timeframe data concurrently.
 
-**优化点**：
+**Optimization points**:
 
-- 使用 `asyncio.gather` 并发请求，节省约 60% IO 时间
-- 时间对齐验证容差：15m 数据允许 15 分钟差异，1h 数据允许 1 小时差异
+- Uses `asyncio.gather` for concurrent requests, saving ~60% IO time
+- Alignment validation tolerance: 15m data allows 15min difference, 1h data allows 1h difference
 
 ### `_to_dataframe(klines)`
 
-将原始 K 线数据转换为 Pandas DataFrame，包含：
+Convert raw K-line data to Pandas DataFrame, including:
 
-- 时间戳转换为 datetime 索引
-- 数值列类型转换
+- Timestamp converted to datetime index
+- Numeric column type conversion
 
 ### `_check_alignment(k5m, k15m, k1h)`
 
-检查多周期数据的时间对齐性：
+Check time alignment of multi-timeframe data:
 
-- 5m vs 15m: 允许 15 分钟差异
-- 5m vs 1h: 允许 1 小时差异
+- 5m vs 15m: 15min difference allowed
+- 5m vs 1h: 1h difference allowed
 
-## 依赖关系
+## Dependencies
 
-```
+```text
 DataSyncAgent
 ├── BinanceClient (src/api/binance_client.py)
 ├── QuantClient (src/api/quant_client.py)
 └── OITracker (src/utils/oi_tracker.py)
 ```
 
-## 配置
+## Configuration
 
-| 参数 | 默认值 | 说明 |
-|------|--------|------|
-| symbol | BTCUSDT | 交易对 |
-| limit | 300 | 获取 K 线数量 |
+| Parameter | Default | Description |
+|-----------|--------|-------------|
+| symbol | BTCUSDT | Trading pair |
+| limit | 300 | Number of K-lines to fetch |
 
-## 使用示例
+## Usage Example
 
 ```python
 from src.agents.data_sync_agent import DataSyncAgent
@@ -119,16 +119,16 @@ from src.agents.data_sync_agent import DataSyncAgent
 agent = DataSyncAgent()
 snapshot = await agent.fetch_all_timeframes("BTCUSDT", limit=300)
 
-# 获取实时价格
+# Get live price
 live_price = agent.get_live_price("5m")
 
-# 获取稳定 DataFrame
+# Get stable DataFrame
 df_5m = agent.get_stable_dataframe("5m")
 ```
 
-## 日志输出
+## Log Output
 
-Dashboard 日志格式：
+Dashboard log format:
 
 ```
 🕵️ DataSyncAgent (The Oracle): Action=Fetch[5m,15m,1h] | Snapshot=$96000.00

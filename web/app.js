@@ -288,7 +288,7 @@ function initChart() {
 }
 
 
-// 全局存储决策历史以便过滤
+// Global storage of decision history for filtering
 let allDecisionHistory = [];
 let currentActivePositions = []; // To share with table renderer
 
@@ -509,7 +509,7 @@ function updateDashboard() {
                 activeAccount = {
                     total_equity: totalEquity,
                     wallet_balance: va.current_balance,
-                    available_balance: va.available_balance || va.current_balance,  // 可用余额 = 资金 - 持仓
+                    available_balance: va.available_balance || va.current_balance,  // Available balance = capital - positions
                     total_pnl: totalPnl,  // ✅ Accurate: Equity - Initial
                     initial_balance: initialBalance, // ✅ Explicitly pass Initial Balance
                     realized_pnl: realizedPnl,  // For potential separate display
@@ -641,7 +641,7 @@ function updateDashboard() {
             if (data.decision_history) {
                 allDecisionHistory = data.decision_history;
                 currentActivePositions = activePositions; // Update global
-                applyDecisionFilters(); // 应用当前过滤条件
+                applyDecisionFilters(); // Apply current filter conditions
             }
             if (data.trade_history) renderTradeHistory(data.trade_history);
 
@@ -661,19 +661,19 @@ function updateDashboard() {
         });
 }
 
-// 决策表过滤函数
+// Decision table filter function
 function applyDecisionFilters() {
     const symbolFilter = document.getElementById('filter-symbol')?.value || 'all';
     const resultFilter = document.getElementById('filter-result')?.value || 'all';
 
     let filtered = allDecisionHistory;
 
-    // 按币种过滤
+    // Filter by symbol
     if (symbolFilter !== 'all') {
         filtered = filtered.filter(d => d.symbol === symbolFilter);
     }
 
-    // 按结果过滤
+    // Filter by result
     if (resultFilter !== 'all') {
         filtered = filtered.filter(d => {
             const action = (d.action || '').toLowerCase();
@@ -684,7 +684,7 @@ function applyDecisionFilters() {
     renderDecisionTable(filtered, currentActivePositions);
 }
 
-// 过滤器事件监听
+// Filter event listeners
 document.getElementById('filter-symbol')?.addEventListener('change', applyDecisionFilters);
 document.getElementById('filter-result')?.addEventListener('change', applyDecisionFilters);
 
@@ -696,13 +696,13 @@ function renderDecisionTable(history, positions = []) {
     if (!tbody) return;
 
     tbody.innerHTML = history.map(d => {
-        // 显示日期+时间 (MM-DD HH:MM:SS)
+        // Display date+time (MM-DD HH:MM:SS)
         let time = d.timestamp || 'Just now';
         if (time.includes(' ')) {
             const parts = time.split(' ');
             if (parts.length >= 2) {
-                // 提取日期的月-日部分和时间
-                const datePart = parts[0].split('-').slice(1).join('-'); // 提取 MM-DD
+                // Extract month-day portion of date and time
+                const datePart = parts[0].split('-').slice(1).join('-'); // Extract MM-DD
                 const timePart = parts[1]; // HH:MM:SS
                 time = `${datePart} ${timePart}`;
             }
@@ -942,13 +942,13 @@ function renderAccount(account) {
 
     const totalEquity = account.total_equity || 0;
     const walletBalance = account.wallet_balance || 0;
-    const availableBalance = account.available_balance || walletBalance;  // 可用余额
+    const availableBalance = account.available_balance || walletBalance;  // Available balance
     const totalPnl = account.total_pnl || 0;
 
     setTxt('acc-equity', fmt(totalEquity));
     setTxt('header-equity', fmt(totalEquity));
     setTxt('account-wallet-balance', fmt(walletBalance));
-    setTxt('account-available-balance', fmt(availableBalance));  // 显示可用余额
+    setTxt('account-available-balance', fmt(availableBalance));  // Display available balance
     setTxt('acc-initial', fmt(initialBalance));
 
     // PnL calculation and styling
@@ -1569,10 +1569,10 @@ function updateAgentFramework(system, decision, agents) {
             Off: 'Off'
         },
         zh: {
-            Idle: '空闲',
-            Running: '运行中',
-            Done: '完成',
-            Off: '关闭'
+            Idle: 'Idle',
+            Running: 'Running',
+            Done: 'Done',
+            Off: 'Off'
         }
     };
     const modeLower = typeof mode === 'string' ? mode.toLowerCase() : '';
@@ -1652,21 +1652,21 @@ function updateAgentFramework(system, decision, agents) {
             decision_core: 'Decision Core'
         },
         zh: {
-            trend: { llm: '趋势代理(LLM)', local: '趋势代理', fallback: '趋势代理' },
-            trigger: { llm: '触发代理(LLM)', local: '触发代理', fallback: '触发代理' },
-            reflection: { llm: '复盘代理(LLM)', local: '复盘代理', fallback: '复盘代理' },
-            quant_analyst: '量化分析师',
-            multi_period_agent: '多周期解析',
-            predict_agent: '预测代理',
-            bull_agent: '多头观点',
-            bear_agent: '空头观点',
-            reflection_agent: '复盘代理',
-            trend_agent: '趋势代理',
-            setup_agent: '设置代理',
-            trigger_agent: '触发代理',
-            risk_audit: '风控审计',
-            symbol_selector: '选币代理',
-            decision_core: '决策核心'
+            trend: { llm: 'Trend Agent (LLM)', local: 'Trend Agent', fallback: 'Trend Agent' },
+            trigger: { llm: 'Trigger Agent (LLM)', local: 'Trigger Agent', fallback: 'Trigger Agent' },
+            reflection: { llm: 'Reflection Agent (LLM)', local: 'Reflection Agent', fallback: 'Reflection Agent' },
+            quant_analyst: 'Quant Analyst',
+            multi_period_agent: 'Multi-Period Parser',
+            predict_agent: 'Predict Agent',
+            bull_agent: 'Bull Perspective',
+            bear_agent: 'Bear Perspective',
+            reflection_agent: 'Reflection Agent',
+            trend_agent: 'Trend Agent',
+            setup_agent: 'Setup Agent',
+            trigger_agent: 'Trigger Agent',
+            risk_audit: 'Risk Audit',
+            symbol_selector: 'Symbol Selector',
+            decision_core: 'Decision Core'
         }
     };
 

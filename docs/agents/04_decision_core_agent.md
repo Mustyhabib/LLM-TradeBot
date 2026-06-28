@@ -1,97 +1,97 @@
 # ⚖️ DecisionCoreAgent (The Critic)
 
-> 对抗评论员 - 加权投票与决策融合
+> Adversarial Critic - Weighted voting and decision fusion
 
-## 概述
+## Overview
 
-DecisionCoreAgent 是多 Agent 框架的决策核心，整合来自 QuantAnalystAgent 和 PredictAgent 的多维度信号，通过加权投票机制生成最终交易决策。
+DecisionCoreAgent is the decision core of the multi-Agent framework, integrating multi-dimensional signals from QuantAnalystAgent and PredictAgent to generate final trading decisions through a weighted voting mechanism.
 
-## 核心职责
+## Core Responsibilities
 
-1. **加权投票** - 整合多周期趋势、震荡、情绪和 ML 预测信号
-2. **多周期对齐** - 检测 1h/15m/5m 趋势一致性
-3. **市场感知** - 集成位置分析和状态检测
-4. **对抗审计** - 检测技术信号与资金流背离
+1. **Weighted Voting** - Integrate multi-timeframe trend, oscillator, sentiment, and ML prediction signals
+2. **Multi-Timeframe Alignment** - Detect 1h/15m/5m trend consistency
+3. **Market Awareness** - Integrate position analysis and state detection
+4. **Adversarial Audit** - Detect divergence between technical signals and fund flow
 
-## 数据流
+## Data Flow
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────┐
 │                     DecisionCoreAgent                            │
 ├─────────────────────────────────────────────────────────────────┤
-│ 输入：                                                           │
-│   - quant_analysis: QuantAnalystAgent 输出                       │
-│   - predict_result: PredictAgent 输出                            │
-│   - market_data: 原始市场数据                                     │
+│ Input:                                                           │
+│   - quant_analysis: QuantAnalystAgent output                     │
+│   - predict_result: PredictAgent output                          │
+│   - market_data: Raw market data                                 │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                  │
 │  ┌──────────────────────────────────────────────────────────┐   │
-│  │ 信号提取                                                   │   │
+│  │ Signal Extraction                                         │   │
 │  │ trend_5m/15m/1h, oscillator_5m/15m/1h, sentiment, prophet │   │
 │  └──────────────────────────────────────────────────────────┘   │
 │                           │                                      │
 │  ┌──────────────────────────────────────────────────────────┐   │
-│  │ 市场状态分析                                               │   │
+│  │ Market State Analysis                                     │   │
 │  │ • RegimeDetector: trending/choppy/volatile/unknown        │   │
-│  │ • PositionAnalyzer: 价格位置百分比                         │   │
+│  │ • PositionAnalyzer: Price position percentage             │   │
 │  └──────────────────────────────────────────────────────────┘   │
 │                           │                                      │
 │  ┌──────────────────────────────────────────────────────────┐   │
-│  │ 加权投票计算                                               │   │
+│  │ Weighted Vote Calculation                                 │   │
 │  │ weighted_score = Σ(signal × weight)                       │   │
 │  └──────────────────────────────────────────────────────────┘   │
 │                           │                                      │
 │  ┌──────────────────────────────────────────────────────────┐   │
-│  │ 多周期对齐检测                                             │   │
-│  │ • 完全对齐: 1h/15m/5m 同向                                 │   │
-│  │ • 部分对齐: 1h/15m 同向                                    │   │
-│  │ • 不对齐: 多周期分歧                                       │   │
+│  │ Multi-Timeframe Alignment Detection                       │   │
+│  │ • Full alignment: 1h/15m/5m same direction                │   │
+│  │ • Partial alignment: 1h/15m same direction                │   │
+│  │ • Misaligned: Multi-timeframe divergence                  │   │
 │  └──────────────────────────────────────────────────────────┘   │
 │                           │                                      │
 │  ┌──────────────────────────────────────────────────────────┐   │
-│  │ 对抗式审计                                                 │   │
-│  │ • 技术看多 + 机构流出 → 信心衰减 50%                        │   │
-│  │ • 技术看空 + 机构流入 → 信心衰减 50%                        │   │
+│  │ Adversarial Audit                                         │   │
+│  │ • Bullish tech + institutional outflow → confidence -50%  │   │
+│  │ • Bearish tech + institutional inflow → confidence -50%   │   │
 │  └──────────────────────────────────────────────────────────┘   │
 │                           │                                      │
 ├─────────────────────────────────────────────────────────────────┤
-│ 输出：VoteResult                                                 │
+│ Output: VoteResult                                               │
 │   - action: "long" / "short" / "hold"                           │
 │   - confidence: 0 ~ 100                                          │
 │   - weighted_score: -100 ~ +100                                  │
 │   - multi_period_aligned: bool                                   │
-│   - vote_details: 各信号贡献分                                   │
-│   - reason: 决策原因                                             │
-│   - regime: 市场状态                                             │
-│   - position: 价格位置                                           │
+│   - vote_details: Per-signal contribution scores                 │
+│   - reason: Decision reason                                      │
+│   - regime: Market state                                         │
+│   - position: Price position                                     │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-## 信号权重配置
+## Signal Weight Configuration
 
 ```python
 @dataclass
 class SignalWeight:
-    # 趋势信号 (合计 0.45)
+    # Trend signals (total 0.45)
     trend_5m: float = 0.10
     trend_15m: float = 0.15
     trend_1h: float = 0.20
     
-    # 震荡信号 (合计 0.20)
+    # Oscillator signals (total 0.20)
     oscillator_5m: float = 0.05
     oscillator_15m: float = 0.07
     oscillator_1h: float = 0.08
     
-    # ML 预测
+    # ML prediction
     prophet: float = 0.15
     
-    # 情绪信号 (动态权重)
+    # Sentiment signal (dynamic weight)
     sentiment: float = 0.20
 ```
 
-> **注意**：所有权重合计为 1.0，情绪信号在无数据时权重降为 0
+> **Note**: All weights sum to 1.0; sentiment signal weight drops to 0 when no data is available
 
-## 关键数据结构
+## Key Data Structures
 
 ### VoteResult
 
@@ -101,73 +101,73 @@ class VoteResult:
     action: str              # 'long', 'short', 'hold'
     confidence: float        # 0.0 ~ 100.0
     weighted_score: float    # -100 ~ +100
-    vote_details: Dict       # 各信号贡献分明细
+    vote_details: Dict       # Per-signal contribution breakdown
     multi_period_aligned: bool
-    reason: str              # 决策原因说明
-    regime: Optional[Dict]   # 市场状态
-    position: Optional[Dict] # 价格位置
+    reason: str              # Decision reason description
+    regime: Optional[Dict]   # Market state
+    position: Optional[Dict] # Price position
 ```
 
-## 决策阈值
+## Decision Thresholds
 
-| 条件 | 动作 | 信心度 |
-|------|------|--------|
+| Condition | Action | Confidence |
+|------|------|------|
 | score > 50 && aligned | long | 85% |
 | score > 30 | long | 60-75% |
 | score < -50 && aligned | short | 85% |
 | score < -30 | short | 60-75% |
-| 其他 | hold | 根据得分 |
+| Other | hold | Based on score |
 
-## 过滤逻辑
+## Filter Logic
 
-### 市场状态过滤
+### Market State Filtering
 
 ```python
 if regime == 'choppy' and position == 'middle':
-    return "禁止开仓: 震荡市且价格处于区间中部"
+    return "Open prohibited: Choppy market and price in middle of range"
 ```
 
-### 对抗式审计
+### Adversarial Audit
 
 ```python
-# 技术信号与资金流背离检测
+# Technical signal vs. fund flow divergence detection
 if action == 'open_long' and inst_netflow_1h < -1000000:
-    confidence *= 0.5  # 看多但机构流出，信心减半
+    confidence *= 0.5  # Bullish but institutional outflow, confidence halved
 ```
 
-## 辅助分析器
+## Auxiliary Analyzers
 
-### RegimeDetector (市场状态检测)
+### RegimeDetector (Market State Detection)
 
-| 状态 | 说明 | 条件 |
+| State | Description | Condition |
 |------|------|------|
-| trending | 趋势市 | ADX > 25, EMA 对齐 |
-| choppy | 震荡市 | ADX < 20, 价格在均线附近 |
-| volatile | 高波动 | ATR/Price > 阈值 |
-| unknown | 不明确 | 以上都不满足 |
+| trending | Trending market | ADX > 25, EMA aligned |
+| choppy | Choppy market | ADX < 20, price near MA |
+| volatile | High volatility | ATR/Price > threshold |
+| unknown | Unclear | None of the above |
 
-### PositionAnalyzer (价格位置分析)
+### PositionAnalyzer (Price Position Analysis)
 
 ```python
 position_pct = (current_price - min) / (max - min) * 100
-# 0% = 区间最低, 100% = 区间最高
+# 0% = range low, 100% = range high
 
 location = "bottom" if pct < 30 else "top" if pct > 70 else "middle"
-allow_long = pct < 70   # 高位禁止做多
-allow_short = pct > 30  # 低位禁止做空
+allow_long = pct < 70   # Long prohibited at high
+allow_short = pct > 30  # Short prohibited at low
 ```
 
-## 依赖关系
+## Dependencies
 
-```
+```text
 DecisionCoreAgent
-├── SignalWeight (权重配置)
+├── SignalWeight (weight config)
 ├── PositionAnalyzer (src/agents/position_analyzer.py)
 ├── RegimeDetector (src/agents/regime_detector.py)
-└── VoteResult (输出结构)
+└── VoteResult (output structure)
 ```
 
-## 使用示例
+## Usage Example
 
 ```python
 from src.agents.decision_core_agent import DecisionCoreAgent
@@ -179,16 +179,16 @@ result = await agent.make_decision(
     market_data=market_data
 )
 
-print(f"决策: {result.action}")
-print(f"信心: {result.confidence}%")
-print(f"加权得分: {result.weighted_score}")
-print(f"多周期对齐: {result.multi_period_aligned}")
+print(f"Decision: {result.action}")
+print(f"Confidence: {result.confidence}%")
+print(f"Weighted score: {result.weighted_score}")
+print(f"Multi-timeframe aligned: {result.multi_period_aligned}")
 ```
 
-## 日志输出
+## Log Output
 
-Dashboard 日志格式：
+Dashboard log format:
 
 ```
-⚖️ DecisionCoreAgent (The Critic): Context(Regime=choppy, Pos=27%) => Vote: WAIT ([CHOPPY] | 加权得分: -17.2 | 周期对齐: 多周期分歧(1h:-1, 15m:0, 5m:0) | sentiment: -50 | trend_1h: -40)
+⚖️ DecisionCoreAgent (The Critic): Context(Regime=choppy, Pos=27%) => Vote: WAIT ([CHOPPY] | Weighted score: -17.2 | Period alignment: Multi-timeframe divergence(1h:-1, 15m:0, 5m:0) | sentiment: -50 | trend_1h: -40)
 ```

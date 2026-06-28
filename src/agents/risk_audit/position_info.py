@@ -3,7 +3,7 @@ from dataclasses import dataclass
 
 @dataclass
 class PositionInfo:
-    """持仓信息"""
+    """Position info"""
     symbol: str
     side: str  # 'long' or 'short'
     entry_price: float

@@ -1,10 +1,10 @@
 # 🤖 Multi-Agent Runtime Architecture
 
-> LLM-TradeBot 当前运行时多 Agent 架构（与 `main.py` 实现对齐）
+> LLM-TradeBot current runtime Multi-Agent architecture (aligned with `main.py` implementation)
 
-## 架构总览
+## Architecture Overview
 
-系统当前不是单一路径 5-Agent 线性串行，而是“多分支分析 + 决策路由 + 风控闸门 + 单机会执行”。
+The system is currently not a single-path 5-Agent linear pipeline, but rather "multi-branch analysis + decision routing + risk control gate + single-opportunity execution".
 
 ```text
 Symbol Selector (AUTO1/AUTO3)
@@ -26,42 +26,42 @@ DataSyncAgent ──► QuantAnalystAgent ──┬──► PredictAgent (optio
                                       Executor (single best open per cycle)
 ```
 
-## Agent 分层
+## Agent Layering
 
-| 层级 | Agent | 作用 | 是否可选 |
+| Layer | Agent | Function | Required? |
 |---|---|---|---|
-| 数据层 | DataSyncAgent | 拉取 5m/15m/1h 快照与实时价格 | 否 |
-| 分析层 | QuantAnalystAgent | 趋势/震荡/情绪/陷阱信号 | 否 |
-| 分析层 | PredictAgent | 30m 概率预测 | 是 |
-| 分析层 | ReflectionAgent / ReflectionAgentLLM | 交易复盘，提供 prompt 上下文 | 是 |
-| 分析层 | Trend/Setup/Trigger Agent (LLM/Local) | 语义解释与结构化 stance | 是 |
-| 汇总层 | MultiPeriodParserAgent | 多周期一致性摘要 | 否 |
-| 决策层 | Decision Router | 选择 forced-exit / fast-trend / LLM / rule-based 路径 | 否 |
-| 风控层 | RiskAuditAgent | 一票否决、止损修正、保证金/风险检查 | 否 |
-| 执行层 | Executor | 执行订单，维护交易/仓位状态 | 否 |
+| Data | DataSyncAgent | Fetch 5m/15m/1h snapshots and real-time prices | Yes |
+| Analysis | QuantAnalystAgent | Trend/Oscillator/Sentiment/Trap signals | Yes |
+| Analysis | PredictAgent | 30m probability prediction | No |
+| Analysis | ReflectionAgent / ReflectionAgentLLM | Trade review, provide prompt context | No |
+| Analysis | Trend/Setup/Trigger Agent (LLM/Local) | Semantic interpretation and structured stance | No |
+| Summary | MultiPeriodParserAgent | Multi-period consistency summary | Yes |
+| Decision | Decision Router | Select forced-exit / fast-trend / LLM / rule-based path | Yes |
+| Risk | RiskAuditAgent | Veto power, stop-loss correction, margin/risk checks | Yes |
+| Execution | Executor | Execute orders, maintain trade/position state | Yes |
 
-## 周期执行流程
+## Cycle Execution Flow
 
-1. 读取 symbols（可由 Selector 动态刷新）。
-2. 对每个 symbol 执行分析流程（`analyze_only=True`）：
-   - 数据准备与有效性检查
-   - 并行分析任务（Quant / Predict / Reflection）
-   - Four-Layer Filter + 语义分析 + Multi-Period 汇总
-   - 决策路由并过 RiskAudit
-3. 收集所有 `suggested` 开仓建议。
-4. 仅执行置信度最高的 1 个开仓建议（单周期单开仓上限）。
-5. 更新账户、日志、决策历史与可视化状态。
+1. Read symbols (can be dynamically refreshed by Selector).
+2. Execute analysis flow for each symbol (`analyze_only=True`):
+   - Data preparation and validity check
+   - Parallel analysis tasks (Quant / Predict / Reflection)
+   - Four-Layer Filter + semantic analysis + Multi-Period summary
+   - Decision routing through RiskAudit
+3. Collect all `suggested` open recommendations.
+4. Only execute the 1 open recommendation with highest confidence (single cycle single open limit).
+5. Update account, logs, decision history, and visualization status.
 
-## 决策路由优先级
+## Decision Routing Priority
 
-1. `forced_exit`: 持仓超时/亏损阈值触发强制平仓。  
-2. `fast_trend`: 30m 动量快速信号触发。  
-3. `llm`: Bull/Bear 并行视角 + LLM 决策。  
-4. `decision_core`: LLM 不可用时回退规则决策。  
+1. `forced_exit`: Position timeout/loss threshold triggers forced liquidation.  
+2. `fast_trend`: 30m momentum fast signal triggers.  
+3. `llm`: Bull/Bear parallel perspective + LLM decision.  
+4. `decision_core`: Rule-based decision fallback when LLM unavailable.  
 
-## 动作协议（统一）
+## Action Protocol (Unified)
 
-系统统一动作枚举（见 `src/utils/action_protocol.py`）：
+System unified action enumeration (see `src/utils/action_protocol.py`):
 
 - `open_long`
 - `open_short`
@@ -70,22 +70,22 @@ DataSyncAgent ──► QuantAnalystAgent ──┬──► PredictAgent (optio
 - `wait`
 - `hold`
 
-说明：
+Notes:
 
-- 所有外部/内部动作先归一化再进入风控和执行层。
-- `close/close_position` 仅作为兼容输入，运行时会映射到明确方向的 close 动作。
+- All external/internal actions are normalized before entering the risk control and execution layer.
+- `close/close_position` is compatibility input only; at runtime it is mapped to a directional close action.
 
-## 关键实现文件
+## Key Implementation Files
 
-- 编排主流程：`/Users/yunxuanhan/Documents/workspace/ai/LLM-TradeBot/main.py`
-- Agent 配置：`/Users/yunxuanhan/Documents/workspace/ai/LLM-TradeBot/src/agents/agent_config.py`
-- 动作协议：`/Users/yunxuanhan/Documents/workspace/ai/LLM-TradeBot/src/utils/action_protocol.py`
-- 分析→执行契约：`/Users/yunxuanhan/Documents/workspace/ai/LLM-TradeBot/src/agents/contracts.py`
-- 风控：`/Users/yunxuanhan/Documents/workspace/ai/LLM-TradeBot/src/agents/risk_audit_agent.py`
-- 状态与 API：`/Users/yunxuanhan/Documents/workspace/ai/LLM-TradeBot/src/server/state.py`, `/Users/yunxuanhan/Documents/workspace/ai/LLM-TradeBot/src/server/app.py`
+- Orchestration main flow: `/Users/yunxuanhan/Documents/workspace/ai/LLM-TradeBot/main.py`
+- Agent config: `/Users/yunxuanhan/Documents/workspace/ai/LLM-TradeBot/src/agents/agent_config.py`
+- Action protocol: `/Users/yunxuanhan/Documents/workspace/ai/LLM-TradeBot/src/utils/action_protocol.py`
+- Analysis→Execution contract: `/Users/yunxuanhan/Documents/workspace/ai/LLM-TradeBot/src/agents/contracts.py`
+- Risk control: `/Users/yunxuanhan/Documents/workspace/ai/LLM-TradeBot/src/agents/risk_audit_agent.py`
+- State & API: `/Users/yunxuanhan/Documents/workspace/ai/LLM-TradeBot/src/server/state.py`, `/Users/yunxuanhan/Documents/workspace/ai/LLM-TradeBot/src/server/app.py`
 
-## 扩展建议
+## Extension Recommendations
 
-1. 新增 Agent 时优先接入 `agent_outputs`，并定义清晰输入/输出 schema。  
-2. 新动作必须先扩展 action protocol，再接入风控与执行。  
-3. Dashboard 展示字段应来自 `global_state` 的锁保护快照，避免竞态读。  
+1. When adding a new Agent, prefer integrating via `agent_outputs` with a clear input/output schema.  
+2. New actions must first extend the action protocol, then integrate with risk control and execution.  
+3. Dashboard display fields should come from `global_state`'s lock-protected snapshot to avoid race condition reads.  

@@ -9,8 +9,8 @@ class BinanceWebSocketClient:
     """
     Binance WebSocket Client (Futures)
     
-    使用 wss://fstream.binance.com/ws 原始流接口
-    通过 JSON-RPC 发送 SUBSCRIBE 消息进行动态订阅
+    Uses wss://fstream.binance.com/ws raw stream interface
+    Dynamically subscribes by sending SUBSCRIBE messages via JSON-RPC
     """
     BASE_URL = "wss://fstream.binance.com/ws"
     
@@ -23,7 +23,7 @@ class BinanceWebSocketClient:
         self._lock = asyncio.Lock()
 
     async def start(self):
-        """启动 WebSocket 连接"""
+        """Start WebSocket connection"""
         if self.running:
             return
         self.running = True
@@ -32,7 +32,7 @@ class BinanceWebSocketClient:
         log.info("🚀 Binance WebSocket Client (Futures) Started")
 
     async def _connect_loop(self):
-        """连接维护循环"""
+        """Connection maintenance loop"""
         while self.running:
             try:
                 log.info(f"Connecting to Binance WS: {self.BASE_URL}")
@@ -40,7 +40,7 @@ class BinanceWebSocketClient:
                     self.ws = ws
                     log.info("✅ Binance WS Connected")
                     
-                    # 连接成功后重新订阅
+                    # Re-subscribe after successful connection
                     if self._subscriptions:
                         await self._send_subscribe(self._subscriptions)
                     
@@ -66,7 +66,7 @@ class BinanceWebSocketClient:
                 await asyncio.sleep(5) 
 
     async def _send_subscribe(self, streams: List[str]):
-        """发送订阅指令"""
+        """Send subscribe command"""
         if not self.ws:
             return
         
@@ -82,12 +82,12 @@ class BinanceWebSocketClient:
             log.error(f"Subscribe failed: {e}")
 
     def _handle_message(self, data: Dict):
-        """处理推送消息"""
-        # 忽略订阅响应
+        """Handle push message"""
+        # Ignore subscription response
         if "result" in data and "id" in data:
             return
 
-        # 处理 K-line 事件 (e: kline)
+        # Handle K-line event (e: kline)
         if data.get("e") == "kline":
             for callback in self.callbacks:
                 try:
@@ -96,11 +96,11 @@ class BinanceWebSocketClient:
                     log.error(f"Callback error: {e}")
             return
         
-        # 可扩充处理其他类型消息...
+        # Can be extended to handle other message types...
 
     async def subscribe_kline(self, symbol: str, interval: str):
         """
-        订阅 K 线数据
+        Subscribe to K-line data
         Topic: <symbol>@kline_<interval>
         """
         stream = f"{symbol.lower()}@kline_{interval}"
@@ -111,16 +111,16 @@ class BinanceWebSocketClient:
                     await self._send_subscribe([stream])
             
     def add_callback(self, callback: Callable[[Dict], None]):
-        """注册回调函数"""
+        """Register callback function"""
         self.callbacks.append(callback)
 
     async def stop(self):
-        """停止客户端"""
+        """Stop client"""
         self.running = False
         if self.ws:
             await self.ws.close()
         if self.session:
             await self.session.close()
 
-# 单例模式
+# Singleton pattern
 ws_client = BinanceWebSocketClient()

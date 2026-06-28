@@ -1,8 +1,8 @@
 """
-Google Gemini 客户端实现
-=======================
+Google Gemini Client Implementation
+===================================
 
-Gemini 使用 Google AI API，格式与 OpenAI 不同。
+Gemini uses the Google AI API, with a format different from OpenAI.
 """
 
 from typing import Dict, Any, List
@@ -11,12 +11,12 @@ from .base import BaseLLMClient, LLMConfig, ChatMessage, LLMResponse
 
 class GeminiClient(BaseLLMClient):
     """
-    Google Gemini 客户端
-    
-    Gemini API 特点：
-    - 使用 API key 作为 URL 参数
-    - 消息格式使用 parts 而非 content
-    - 端点结构不同
+    Google Gemini client
+
+    Gemini API characteristics:
+    - Uses API key as a URL parameter
+    - Message format uses parts instead of content
+    - Different endpoint structure
     """
     
     DEFAULT_BASE_URL = "https://generativelanguage.googleapis.com/v1beta"
@@ -24,13 +24,13 @@ class GeminiClient(BaseLLMClient):
     PROVIDER = "gemini"
     
     def _build_headers(self) -> Dict[str, str]:
-        """Gemini 使用简单的 Content-Type 头"""
+        """Gemini uses a simple Content-Type header"""
         return {
             "Content-Type": "application/json"
         }
     
     def _build_url(self) -> str:
-        """Gemini API URL 包含 model 和 api_key"""
+        """Gemini API URL includes model and api_key"""
         return f"{self.base_url}/models/{self.model}:generateContent?key={self.config.api_key}"
     
     def _build_request_body(
@@ -39,9 +39,9 @@ class GeminiClient(BaseLLMClient):
         **kwargs
     ) -> Dict[str, Any]:
         """
-        构建 Gemini 请求体
-        
-        Gemini 格式：
+        Build Gemini request body
+
+        Gemini format:
         - contents: [{role: "user", parts: [{text: "..."}]}]
         - systemInstruction: {parts: [{text: "..."}]}
         """
@@ -54,7 +54,7 @@ class GeminiClient(BaseLLMClient):
                     "parts": [{"text": msg.content}]
                 }
             else:
-                # Gemini 使用 "model" 代替 "assistant"
+                # Gemini uses "model" instead of "assistant"
                 role = "model" if msg.role == "assistant" else msg.role
                 contents.append({
                     "role": role,
@@ -75,7 +75,7 @@ class GeminiClient(BaseLLMClient):
         return body
     
     def _parse_response(self, response: Dict[str, Any]) -> LLMResponse:
-        """解析 Gemini 响应"""
+        """Parse Gemini response"""
         content = ""
         
         candidates = response.get("candidates", [])
@@ -84,7 +84,7 @@ class GeminiClient(BaseLLMClient):
             if parts:
                 content = parts[0].get("text", "")
         
-        # Gemini usage 格式不同
+        # Gemini usage format is different
         usage_metadata = response.get("usageMetadata", {})
         usage = {
             "prompt_tokens": usage_metadata.get("promptTokenCount", 0),

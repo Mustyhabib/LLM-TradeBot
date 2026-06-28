@@ -1,7 +1,7 @@
 """
 Multi-Agent Trading System
 
-基于异步并发的多Agent交易架构
+Asynchronous concurrent multi-agent trading architecture
 
 Core Agents (always enabled):
 - DataSyncAgent: Market data fetching

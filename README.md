@@ -8,7 +8,7 @@ Intelligent Multi-Agent Quantitative Trading Bot based on the **Adversarial Deci
 
 [![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://www.python.org/)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Framework](https://img.shields.io/badge/Strategy-Adversarial%20Intelligence-gold.svg)](https://github.com/EthanAlgoX/LLM-TradeBot)
+[![Framework](https://img.shields.io/badge/Strategy-Adversarial%20Intelligence-gold.svg)](https://github.com/Mustyhabib/LLM-TradeBot)
 [![X Follow](https://img.shields.io/badge/X-@ethan__han999-black.svg?logo=x)](https://x.com/ethan_han999)
 
 ---

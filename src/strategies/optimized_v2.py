@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """
-优化版交易策略 V2
-===================
+Optimized Trading Strategy V2
+=============================
 
-改进点:
-1. 降低RSI入场门槛 (35→40)  
-2. 添加布林带突破信号
-3. 增强做空逻辑
-4. 动态止损止盈
-5. 更智能的出场条件
+Improvements:
+1. Lowered RSI entry threshold (35→40)
+2. Added Bollinger Band breakout signals
+3. Enhanced short-selling logic
+4. Dynamic stop-loss and take-profit
+5. Smarter exit conditions
 
 Author: AI Trader Team
 Date: 2026-01-10
@@ -22,36 +22,36 @@ from dataclasses import dataclass
 
 @dataclass
 class StrategyConfig:
-    """策略配置"""
-    # RSI 参数
+    """Strategy configuration"""
+    # RSI parameters
     rsi_period: int = 14
-    rsi_oversold: float = 32  # 放宽入场条件 (原25)
-    rsi_overbought: float = 68  # 放宽出场条件 (原70)
+    rsi_oversold: float = 32  # Relaxed entry condition (was 25)
+    rsi_overbought: float = 68  # Relaxed exit condition (was 70)
     rsi_extreme_oversold: float = 25
     rsi_extreme_overbought: float = 80
     
-    # EMA 参数
-    ema_fast: int = 9  # 更快响应 (原12)
-    ema_slow: int = 21  # 更快响应 (原26)
+    # EMA parameters
+    ema_fast: int = 9  # Faster response (was 12)
+    ema_slow: int = 21  # Faster response (was 26)
     
-    # 布林带参数
+    # Bollinger Band parameters
     bb_period: int = 20
     bb_std: float = 2.0
     
-    # ATR 参数
+    # ATR parameters
     atr_period: int = 14
-    atr_sl_multiplier: float = 1.5  # 止损=ATR*1.5
-    atr_tp_multiplier: float = 2.5  # 止盈=ATR*2.5
+    atr_sl_multiplier: float = 1.5  # Stop-loss = ATR * 1.5
+    atr_tp_multiplier: float = 2.5  # Take-profit = ATR * 2.5
     
-    # 成交量
-    rvol_threshold: float = 1.2  # 放宽成交量要求 (原1.5)
+    # Volume
+    rvol_threshold: float = 1.2  # Relaxed volume requirement (was 1.5)
     
-    # 做空开关
+    # Short-selling switch
     enable_short: bool = True
 
 
 def calculate_indicators(df: pd.DataFrame, config: StrategyConfig) -> Dict:
-    """计算技术指标"""
+    """Calculate technical indicators"""
     close = df['close'].astype(float)
     high = df['high'].astype(float)
     low = df['low'].astype(float)
@@ -67,7 +67,7 @@ def calculate_indicators(df: pd.DataFrame, config: StrategyConfig) -> Dict:
     indicators['ema_fast_prev'] = ema_fast.iloc[-2]
     indicators['ema_slow_prev'] = ema_slow.iloc[-2]
     
-    # EMA趋势
+    # EMA trend
     indicators['is_uptrend'] = indicators['ema_fast'] > indicators['ema_slow']
     indicators['golden_cross'] = (indicators['ema_fast'] > indicators['ema_slow'] and 
                                    indicators['ema_fast_prev'] <= indicators['ema_slow_prev'])
@@ -94,7 +94,7 @@ def calculate_indicators(df: pd.DataFrame, config: StrategyConfig) -> Dict:
     indicators['macd_momentum'] = indicators['macd_hist'] > indicators['macd_hist_prev']
     indicators['macd_positive'] = indicators['macd_hist'] > 0
     
-    # 布林带
+    # Bollinger Bands
     bb_mid = close.rolling(window=config.bb_period).mean()
     bb_std = close.rolling(window=config.bb_period).std()
     bb_upper = bb_mid + config.bb_std * bb_std
@@ -113,12 +113,12 @@ def calculate_indicators(df: pd.DataFrame, config: StrategyConfig) -> Dict:
     indicators['atr'] = atr.iloc[-1]
     indicators['atr_pct'] = (atr.iloc[-1] / close.iloc[-1]) * 100
     
-    # 成交量
+    # Volume
     avg_volume = volume.rolling(window=20).mean().iloc[-1]
     current_volume = volume.iloc[-1]
     indicators['rvol'] = current_volume / avg_volume if avg_volume > 0 else 1.0
     
-    # 价格
+    # Price
     indicators['price'] = close.iloc[-1]
     indicators['price_prev'] = close.iloc[-2]
     
@@ -133,31 +133,31 @@ def optimized_strategy_v2(
     strategy_config: Optional[StrategyConfig] = None
 ) -> Dict:
     """
-    优化版策略 V2
+    Optimized Strategy V2
     
-    核心改进:
-    1. 多信号融合 (RSI + EMA + MACD + 布林带)
-    2. 动态止损止盈 (基于ATR)
-    3. 增强做空逻辑
-    4. 更灵活的入场条件
+    Core improvements:
+    1. Multi-signal fusion (RSI + EMA + MACD + Bollinger Bands)
+    2. Dynamic stop-loss and take-profit (ATR-based)
+    3. Enhanced short-selling logic
+    4. More flexible entry conditions
     """
     if strategy_config is None:
         strategy_config = StrategyConfig()
     
-    # 获取数据
+    # Get data
     df = snapshot.stable_5m.copy()
     
     if len(df) < 50:
         return {'action': 'hold', 'confidence': 0.0, 'reason': 'insufficient_data'}
     
-    # 计算指标
+    # Calculate indicators
     ind = calculate_indicators(df, strategy_config)
     
-    # 持仓状态
+    # Position status
     symbol = config.symbol
     has_position = symbol in portfolio.positions
     
-    # 动态止损止盈参数
+    # Dynamic stop-loss and take-profit parameters
     atr_sl = ind['atr'] * strategy_config.atr_sl_multiplier
     atr_tp = ind['atr'] * strategy_config.atr_tp_multiplier
     
@@ -166,38 +166,38 @@ def optimized_strategy_v2(
         'take_profit_pct': (atr_tp / current_price) * 100,
     }
     
-    # ========== 入场信号 ==========
+    # ========== Entry Signals ==========
     
     if not has_position:
-        # 🟢 做多信号
+        # 🟢 Long signals
         long_signals = []
         
-        # 信号1: RSI超卖 + 上升趋势
+        # Signal 1: RSI oversold + uptrend
         if ind['rsi'] < strategy_config.rsi_oversold and ind['is_uptrend']:
             long_signals.append(('rsi_oversold_uptrend', 75))
         
-        # 信号2: RSI极度超卖 (任何趋势)
+        # Signal 2: RSI extremely oversold (any trend)
         if ind['rsi'] < strategy_config.rsi_extreme_oversold:
             long_signals.append(('rsi_extreme_oversold', 85))
         
-        # 信号3: 金叉 + MACD确认
+        # Signal 3: Golden cross + MACD confirmation
         if ind['golden_cross'] and ind['macd_positive']:
             long_signals.append(('golden_cross_macd+', 80))
         
-        # 信号4: 布林带下轨突破 + RSI不超买
+        # Signal 4: Bollinger Band lower breakout + RSI not overbought
         if ind['bb_position'] < 0.1 and ind['rsi'] < 50:
             long_signals.append(('bb_lower_breakout', 70))
         
-        # 信号5: RSI背离反转
+        # Signal 5: RSI divergence reversal
         if ind['rsi'] < 40 and ind['rsi'] > ind['rsi_prev'] and ind['macd_momentum']:
             long_signals.append(('rsi_reversal', 65))
         
-        # 选择最强信号
+        # Select the strongest signal
         if long_signals:
             best_signal = max(long_signals, key=lambda x: x[1])
             confidence = best_signal[1]
             
-            # 成交量加权
+            # Volume weighting
             if ind['rvol'] > strategy_config.rvol_threshold:
                 confidence = min(confidence + 5, 95)
             
@@ -208,27 +208,27 @@ def optimized_strategy_v2(
                 'trade_params': trade_params
             }
         
-        # 🔴 做空信号 (如果启用)
+        # 🔴 Short signals (if enabled)
         if strategy_config.enable_short:
             short_signals = []
             
-            # 信号1: RSI超买 + 下降趋势
+            # Signal 1: RSI overbought + downtrend
             if ind['rsi'] > strategy_config.rsi_overbought and not ind['is_uptrend']:
                 short_signals.append(('rsi_overbought_downtrend', 75))
             
-            # 信号2: RSI极度超买
+            # Signal 2: RSI extremely overbought
             if ind['rsi'] > strategy_config.rsi_extreme_overbought:
                 short_signals.append(('rsi_extreme_overbought', 80))
             
-            # 信号3: 死叉 + MACD确认
+            # Signal 3: Death cross + MACD confirmation
             if ind['death_cross'] and not ind['macd_positive']:
                 short_signals.append(('death_cross_macd-', 80))
             
-            # 信号4: 布林带上轨突破 + RSI超买
+            # Signal 4: Bollinger Band upper breakout + RSI overbought
             if ind['bb_position'] > 0.95 and ind['rsi'] > 60:
                 short_signals.append(('bb_upper_breakout', 70))
             
-            # 选择最强信号
+            # Select the strongest signal
             if short_signals:
                 best_signal = max(short_signals, key=lambda x: x[1])
                 confidence = best_signal[1]
@@ -243,7 +243,7 @@ def optimized_strategy_v2(
                     'trade_params': trade_params
                 }
     
-    # ========== 持仓管理 ==========
+    # ========== Position Management ==========
     
     if has_position:
         from src.backtest.portfolio import Side
@@ -257,46 +257,46 @@ def optimized_strategy_v2(
         else:
             pnl_pct = (entry_price / current_price - 1) * 100
         
-        # 🎯 多头出场
+        # 🎯 Long exit
         if current_side == Side.LONG:
-            # 条件1: RSI超买 + 动量减弱
+            # Condition 1: RSI overbought + weakening momentum
             if ind['rsi'] > strategy_config.rsi_overbought and not ind['macd_momentum']:
                 return {'action': 'close', 'confidence': 75, 'reason': f'tp_rsi{ind["rsi"]:.0f}_macd_weak'}
             
-            # 条件2: RSI极度超买
+            # Condition 2: RSI extremely overbought
             if ind['rsi'] > strategy_config.rsi_extreme_overbought:
                 return {'action': 'close', 'confidence': 85, 'reason': f'tp_rsi_extreme_{ind["rsi"]:.0f}'}
             
-            # 条件3: 死叉 + 亏损
+            # Condition 3: Death cross + loss
             if ind['death_cross'] and pnl_pct < 0:
                 return {'action': 'close', 'confidence': 70, 'reason': f'sl_death_cross_pnl{pnl_pct:.1f}%'}
             
-            # 条件4: 布林带上轨获利了结
+            # Condition 4: Bollinger Band upper take-profit
             if ind['bb_position'] > 0.95 and pnl_pct > 0.5:
                 return {'action': 'close', 'confidence': 65, 'reason': f'tp_bb_upper_pnl{pnl_pct:.1f}%'}
         
-        # 🎯 空头出场
+        # 🎯 Short exit
         elif current_side == Side.SHORT:
-            # 条件1: RSI超卖
+            # Condition 1: RSI oversold
             if ind['rsi'] < strategy_config.rsi_oversold:
                 return {'action': 'close', 'confidence': 75, 'reason': f'tp_short_rsi{ind["rsi"]:.0f}'}
             
-            # 条件2: 金叉
+            # Condition 2: Golden cross
             if ind['golden_cross']:
                 return {'action': 'close', 'confidence': 70, 'reason': 'sl_golden_cross'}
             
-            # 条件3: 布林带下轨获利了结
+            # Condition 3: Bollinger Band lower take-profit
             if ind['bb_position'] < 0.05 and pnl_pct > 0.5:
                 return {'action': 'close', 'confidence': 65, 'reason': f'tp_bb_lower_pnl{pnl_pct:.1f}%'}
         
-        # 继续持有
+        # Continue holding
         return {'action': 'hold', 'confidence': 50, 'reason': f'holding_pnl{pnl_pct:+.1f}%'}
     
-    # 无信号
+    # No signal
     return {'action': 'hold', 'confidence': 30, 'reason': 'no_signal'}
 
 
-# 导出策略函数
+# Export strategy function
 async def strategy_v2_wrapper(snapshot, portfolio, current_price: float, config) -> Dict:
-    """异步包装器"""
+    """Async wrapper"""
     return optimized_strategy_v2(snapshot, portfolio, current_price, config)

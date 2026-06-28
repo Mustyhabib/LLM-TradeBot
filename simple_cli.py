@@ -1,20 +1,20 @@
 #!/usr/bin/env python3
 """
-简化版 CLI 实盘交易脚本
-跳过所有非必要组件，只保留核心交易功能
+Simplified CLI Live Trading Script
+Skip all non-essential components, keep only core trading functionality
 """
 import sys
 import os
 import asyncio
 from dotenv import load_dotenv
 
-# 加载 .env 文件，但不覆盖已存在的系统环境变量
-# 系统环境变量优先于 .env 文件配置
+# Load .env file, but do not override existing system environment variables
+# System environment variables take precedence over .env file configuration
 load_dotenv(override=False)
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '.')))
 
-# 版本号: v+日期+迭代次数
+# Version number: v+date+iteration count
 VERSION = "v20260111_3"
 
 from src.api.binance_client import BinanceClient
@@ -28,25 +28,25 @@ import time
 from datetime import datetime
 
 class SimpleTradingBot:
-    """简化版交易机器人 - 只包含核心功能"""
+    """Simplified Trading Bot - Contains only core functionality"""
     
     def __init__(self, symbols=None, test_mode=True):
         print("="*60)
         print(f"🤖 Simple Trading Bot - Minimal CLI Mode ({VERSION})")
         print("="*60)
         
-        # 从 .env 读取默认币种配置
+        # Read default symbols from .env
         if symbols is None:
             env_symbols = os.environ.get('TRADING_SYMBOLS', 'BTCUSDT').strip()
             symbols = [s.strip() for s in env_symbols.split(',') if s.strip()]
         
-        # 检查是否使用 AUTO3 模式
+        # Check if using AUTO3 mode
         self.use_auto3 = 'AUTO3' in symbols
         if self.use_auto3:
             symbols.remove('AUTO3')
             print("\n🔝 AUTO3 mode detected - Will select best symbols via backtest...")
         
-        # 如果没有符号或只有 AUTO3，使用默认值
+        # If no symbols or only AUTO3, use defaults
         if not symbols:
             symbols = ['BTCUSDT']
         
@@ -54,7 +54,7 @@ class SimpleTradingBot:
         self.current_symbol = symbols[0]
         self.test_mode = test_mode
         
-        # 核心组件
+        # Core components
         print("\n📦 Initializing core components...")
         self.client = BinanceClient()
         self.risk_manager = RiskManager()
@@ -72,7 +72,7 @@ class SimpleTradingBot:
         )
         self.processor = MarketDataProcessor()
         
-        # 策略引擎
+        # Strategy engine
         print("🧠 Initializing strategy engine...")
         self.strategy_engine = StrategyEngine()
         
@@ -81,12 +81,12 @@ class SimpleTradingBot:
         print(f"🧪 Test Mode: {test_mode}")
         print("="*60)
         
-        # AUTO3 初始化：选择最佳币种
+        # AUTO3 initialization: select best symbols
         if self.use_auto3:
             self._init_auto3()
     
     def _init_auto3(self):
-        """初始化 AUTO3 - 选择最佳交易币种"""
+        """Initialize AUTO3 - Select best trading symbols"""
         print("\n" + "="*60)
         print("🔝 AUTO3 STARTUP - Selecting best trading symbols...")
         print("="*60)
@@ -95,7 +95,7 @@ class SimpleTradingBot:
             from src.agents.symbol_selector_agent import SymbolSelectorAgent
             selector = SymbolSelectorAgent()
             
-            # 运行异步选择
+            # Run async selection
             loop = asyncio.get_event_loop()
             top_symbols = loop.run_until_complete(selector.select_top3(force_refresh=False))
             

@@ -35,13 +35,13 @@ class ExecutionEngine:
     ) -> Dict:
         """
         Execute trading decision
-        
+
         Args:
             decision: Decision verified by risk control
             account_info: Account information
             position_info: Position information
             current_price: Current price
-            
+
         Returns:
             Execution result
         """
@@ -80,7 +80,7 @@ class ExecutionEngine:
             if is_passive_action(action):
                 result['success'] = True
                 result['message'] = 'Wait and observe, do not execute'
-                log.info(f"Execute {action}, no operation")
+                log.info(f"Executing {action}, no operation")
                 return result
             
             elif is_open_action(action) and action == 'open_long':
@@ -239,7 +239,7 @@ class ExecutionEngine:
         stop_loss: Optional[float] = None,
         take_profit: Optional[float] = None
     ) -> List[Dict]:
-        """兼容主流程调用，转发到 BinanceClient。"""
+        """Compatible with main process call, forwards to BinanceClient."""
         return self.client.set_stop_loss_take_profit(
             symbol=symbol,
             stop_loss_price=stop_loss,

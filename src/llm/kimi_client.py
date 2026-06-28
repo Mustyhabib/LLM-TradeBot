@@ -1,8 +1,8 @@
 """
-Kimi 客户端实现
-===============
+Kimi Client Implementation
+==========================
 
-Kimi (Moonshot AI) 使用 OpenAI 兼容 API。
+Kimi (Moonshot AI) uses an OpenAI-compatible API.
 """
 
 from .openai_client import OpenAIClient
@@ -10,9 +10,9 @@ from .openai_client import OpenAIClient
 
 class KimiClient(OpenAIClient):
     """
-    Kimi 客户端
+    Kimi client
 
-    使用 Moonshot 平台的 OpenAI 兼容接口。
+    Uses the OpenAI-compatible interface of the Moonshot platform.
     """
 
     DEFAULT_BASE_URL = "https://api.moonshot.ai/v1"

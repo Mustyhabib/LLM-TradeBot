@@ -87,17 +87,17 @@ class DataReplayAgent:
             
         self.client = client or BinanceClient()
         
-        # 数据cache
+        # Data cache
         self.data_cache: Optional[DataCache] = None
         
-        # 当前回放位置
+        # Current replay position
         self.current_idx = 0
         self.timestamps: List[datetime] = []
         
-        # 最新快照（模拟 DataSyncAgent.latest_snapshot）
+        # Latest snapshot (simulates DataSyncAgent.latest_snapshot)
         self.latest_snapshot: Optional[MarketSnapshot] = None
         
-        # 确保cache目录存在
+        # Ensure cache directory exists
         os.makedirs(self.CACHE_DIR, exist_ok=True)
         
         # Initialize shared K-line cache for incremental fetching
@@ -107,7 +107,7 @@ class DataReplayAgent:
     
     async def load_data(self) -> bool:
         """
-        Load historical data (使用统一的 KlineCache)
+        Load historical data (using unified KlineCache)
         
         Prioritize reading from data/kline/{symbol}/*.parquet (shared directory)
         Only fetch incremental data from API
@@ -143,7 +143,7 @@ class DataReplayAgent:
             return datetime.strptime(value, "%Y-%m-%d"), False
 
     def _to_utc_naive(self, dt: datetime) -> datetime:
-        """将本地时间转换为UTC-naive，避免与Binance UTC时间轴错位"""
+        """Convert local time to UTC-naive, avoid misalignment with Binance UTC timeline"""
         if dt.tzinfo is None:
             local_tz = datetime.now().astimezone().tzinfo
             dt = dt.replace(tzinfo=local_tz)
@@ -154,7 +154,7 @@ class DataReplayAgent:
         return int(dt.replace(tzinfo=timezone.utc).timestamp() * 1000)
 
     def _describe_cache_range(self) -> str:
-        """简要描述cache数据时间范围（用于诊断）"""
+        """Briefly describe cache data time range (for diagnostics)"""
         if self.data_cache is None:
             return "cache=None"
         def _range(df: pd.DataFrame) -> str:
@@ -171,7 +171,7 @@ class DataReplayAgent:
         return pd.Timestamp(end_cutoff).floor("5min").to_pydatetime()
 
     def _cache_covers_range(self) -> bool:
-        """检查cache是否覆盖完整回测窗口（含多周期）
+        """Check if cache covers the full backtest window (including multiple timeframes)
         
         Add fault tolerance: allow 1 hour data delay tolerance
         This prevents backtest failure due to Binance data delay
@@ -193,10 +193,10 @@ class DataReplayAgent:
         end_15m = pd.Timestamp(end_cutoff).floor("15min")
         end_1h = pd.Timestamp(end_cutoff).floor("60min")
 
-        # 添加tolerance：允许数据缺失最多1小时（用于处理实时数据延迟）
+        # Add tolerance: allow up to 1 hour of data delay (to handle real-time data delays)
         tolerance = pd.Timedelta(hours=1)
 
-        # 检查起始时间（严格）
+        # Check start time (strict)
         if df_5m.index.min() > start_5m:
             return False
         if df_15m.index.min() > start_15m:
@@ -204,7 +204,7 @@ class DataReplayAgent:
         if df_1h.index.min() > start_1h:
             return False
 
-        # 检查结束时间（带tolerance）
+        # Check end time (with tolerance)
         if df_5m.index.max() < (end_5m - tolerance):
             log.warning(f"⚠️ 5m data ends at {df_5m.index.max()}, expected {end_5m} (tolerance: 1h)")
             return False
@@ -215,7 +215,7 @@ class DataReplayAgent:
             log.warning(f"⚠️ 1h data ends at {df_1h.index.max()}, expected {end_1h} (tolerance: 1h)")
             return False
 
-        # 如果数据有缺失但在tolerance范围内，Adjusting backtest end time
+        # If data is missing but within tolerance, adjust backtest end time
         actual_end = min(df_5m.index.max(), df_15m.index.max(), df_1h.index.max())
         if actual_end < end_5m:
             log.info(f"📊 Adjusting backtest end time: {self.end_date} → {actual_end} (data availability)")
@@ -224,7 +224,7 @@ class DataReplayAgent:
         return True
     
     def _get_cache_path(self) -> str:
-        """生成cache文件路径"""
+        """Generate cache file path"""
         # Use simple date string for cache key to maximize hits
         # (Even if precise time is used, we cache the whole day range usually)
         # But here start/end might be mid-day. 
@@ -282,7 +282,7 @@ class DataReplayAgent:
         df_15m = df_15m[df_15m.index <= self.end_date]
         df_1h = df_1h[df_1h.index <= self.end_date]
         
-        # 创建cache对象
+        # Create cache object
         self.data_cache = DataCache(
             symbol=self.symbol,
             df_5m=df_5m,
@@ -341,9 +341,9 @@ class DataReplayAgent:
                 if len(funding_data) < 1000:
                     break
                 
-                # 下一批from最后一条时间 +1 开始
+                # Next batch starts from last record time + 1
                 current_start = funding_data[-1]['fundingTime'] + 1
-                await asyncio.sleep(0.1)  # Avoid requests too fast
+                await asyncio.sleep(0.1)  # Avoid requests being too fast
             
             log.info(f"📊 Fetched {len(funding_records)} funding rate records")
             
@@ -470,11 +470,11 @@ class DataReplayAgent:
             log.warning(f"Failed to fetch incremental data: {e}")
     
     async def _fetch_klines_batched(self, interval: str, total_limit: int) -> pd.DataFrame:
-        """分批获取 K 线数据"""
+        """Fetch K-line data in batches"""
         all_klines = []
-        batch_size = 1000  # Binance 推荐的批次大小
+        batch_size = 1000  # Recommended batch size for Binance
         
-        # 计算结束Timestamp
+        # Calculate end timestamp
         end_ts = self._utc_timestamp_ms(self.end_date)
         
         remaining = total_limit
@@ -496,24 +496,24 @@ class DataReplayAgent:
                 if not klines:
                     break
                 
-                all_klines = klines + all_klines  # 倒序插入
+                all_klines = klines + all_klines  # Insert in reverse order
                 
-                # 更新下一批的结束时间（取最早一根的开始时间 - 1）
+                # Update end time for next batch (take earliest candle start time - 1)
                 current_end = klines[0][0] - 1
                 remaining -= len(klines)
                 
-                # Avoid requests too fast
+                # Avoid requests being too fast
                 await asyncio.sleep(0.1)
                 
             except Exception as e:
                 log.warning(f"Batch fetch error: {e}")
                 break
         
-        # 转换为 DataFrame
+        # Convert to DataFrame
         return self._klines_to_dataframe(all_klines)
     
     def _klines_to_dataframe(self, klines: List) -> pd.DataFrame:
-        """将 K 线列表转换为 DataFrame"""
+        """Convert K-line list to DataFrame"""
         if not klines:
             return pd.DataFrame()
         
@@ -523,7 +523,7 @@ class DataReplayAgent:
             'taker_buy_quote', 'ignore'
         ])
         
-        # 转换数据类型
+        # Convert data types
         df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
         df.set_index('timestamp', inplace=True)
         
@@ -535,18 +535,18 @@ class DataReplayAgent:
         return df[['open', 'high', 'low', 'close', 'volume', 'quote_volume', 'trades']]
     
     def _filter_date_range(self, df: pd.DataFrame) -> pd.DataFrame:
-        """过滤日期范围"""
+        """Filter date range"""
         if df.empty:
             return df
         # Use < instead of <= since end_date is now strictly parsed
         return df[(df.index >= self.start_date) & (df.index < self.end_date)]
     
     def _save_to_cache(self, cache_path: str):
-        """保存数据tocache"""
+        """Save data to cache"""
         if self.data_cache is None:
             return
         
-        # 合并所有数据
+        # Merge all data
         cache_data = {
             'df_5m': self.data_cache.df_5m,
             'df_15m': self.data_cache.df_15m,
@@ -560,18 +560,18 @@ class DataReplayAgent:
             'end_date': self.end_date
         }
         
-        # 使用 pickle 保存（支持多个 DataFrame）
+        # Use pickle to save (supports multiple DataFrames)
         import pickle
         with open(cache_path, 'wb') as f:
             pickle.dump(cache_data, f)
     
     def _load_from_cache(self, cache_path: str):
-        """fromcache加载数据"""
+        """Load data from cache"""
         import pickle
         with open(cache_path, 'rb') as f:
             cache_data = pickle.load(f)
         
-        # 加载CapitalRate（兼容旧cache）
+        # Load funding rates (backward compatible with old cache)
         funding_rates = []
         if 'funding_rates' in cache_data:
             for fr_dict in cache_data['funding_rates']:
@@ -603,19 +603,19 @@ class DataReplayAgent:
     
     def get_snapshot_at(self, timestamp: datetime, lookback: int = 1000) -> MarketSnapshot:
         """
-        获取指定时间点的市场快照
+        Get market snapshot at specified timestamp
         
         Args:
-            timestamp: 目标时间点
-            lookback: 回看的 K 线Quantity (5m candles). Defaults to 1000 (~3.5 days) to ensure enough 1h data.
+            timestamp: Target timestamp
+            lookback: Number of K-lines to look back (5m candles). Defaults to 1000 (~3.5 days) to ensure enough 1h data.
             
         Returns:
-            MarketSnapshot 对象（与 DataSyncAgent 兼容）
+            MarketSnapshot object (compatible with DataSyncAgent)
         """
         if self.data_cache is None:
             raise ValueError("Data not loaded. Call load_data() first.")
         
-        # 获取截止to timestamp 的数据
+        # Get data up to timestamp
         # Ensure we have enough data for 1h analysis (need > 60 candles)
         # 1000 5m candles = 83 1h candles.
         
@@ -628,8 +628,8 @@ class DataReplayAgent:
         df_15m = self.data_cache.df_15m[self.data_cache.df_15m.index <= timestamp].tail(lb_15m)
         df_1h = self.data_cache.df_1h[self.data_cache.df_1h.index <= timestamp].tail(lb_1h)
         
-        # Stable view: 排除最后一根（未完成）
-        # Live view: 最后一根（作为 Dict）
+        # Stable view: exclude last bar (incomplete)
+        # Live view: last bar (as Dict)
         live_5m_dict = df_5m.iloc[-1].to_dict() if len(df_5m) > 0 else {}
         live_15m_dict = df_15m.iloc[-1].to_dict() if len(df_15m) > 0 else {}
         live_1h_dict = df_1h.iloc[-1].to_dict() if len(df_1h) > 0 else {}
@@ -663,13 +663,13 @@ class DataReplayAgent:
     
     def iterate_timestamps(self, step: int = 1) -> Iterator[datetime]:
         """
-        迭代所有回测时间点
+        Iterate all backtest timestamps
         
         Args:
-            step: 步长（1 = 每 5 分钟，3 = 每 15 分钟，12 = 每小时）
+            step: Step size (1 = every 5 min, 3 = every 15 min, 12 = every hour)
             
         Yields:
-            datetime 时间点
+            datetime timestamp
         """
         for i in range(0, len(self.timestamps), step):
             self.current_idx = i
@@ -680,9 +680,9 @@ class DataReplayAgent:
         Get current price
         
         CRITICAL FIX (Cycle 2):
-        防止 Look-ahead Bias：
-        返回当前 K 线的 Open 价格，而不是 Close 价格。
-        在回测时刻 T，我们只能看to T 时刻的开盘价，看不to T+5m 的收盘价。
+        Prevent Look-ahead Bias:
+        Return the Open price of the current K-line, not the Close price.
+        At backtest time T, we can only see the open price at time T, not the close price at T+5m.
         """
         if self.latest_snapshot is None:
             return 0.0
@@ -698,11 +698,11 @@ class DataReplayAgent:
     
     def get_open_price(self) -> float:
         """
-        获取当前 K 线的开盘价
+        Get the open price of the current K-line
         
-        用于防止 Look-ahead Bias：
-        - 信号计算使用 bar[i-1] 的数据
-        - 交易执行使用 bar[i] 的开盘价
+        Used to prevent Look-ahead Bias:
+        - Signal calculation uses bar[i-1] data
+        - Trade execution uses bar[i] open price
         """
         if self.latest_snapshot is None:
             return 0.0
@@ -716,9 +716,9 @@ class DataReplayAgent:
     
     def get_previous_close_price(self) -> float:
         """
-        获取上一根 K 线的收盘价
+        Get the close price of the previous K-line
         
-        用于 Look-ahead Bias 防护的信号计算
+        Used for signal calculation with Look-ahead Bias protection
         """
         if self.latest_snapshot is None:
             return 0.0
@@ -729,7 +729,7 @@ class DataReplayAgent:
         return self.get_open_price()
     
     def get_progress(self) -> Tuple[int, int, float]:
-        """获取回放进度"""
+        """Get replay progress"""
         total = len(self.timestamps)
         current = self.current_idx
         pct = (current / total * 100) if total > 0 else 0
@@ -737,14 +737,14 @@ class DataReplayAgent:
     
     def get_funding_rate_at(self, timestamp: datetime) -> Optional[FundingRateRecord]:
         """
-        获取指定时间点或之前最近的CapitalRate
+        Get the funding rate at or before the specified timestamp
         
-        Binance CapitalRate每 8 小时结算（UTC 00:00, 08:00, 16:00）
+        Binance funding rate settles every 8 hours (UTC 00:00, 08:00, 16:00)
         """
         if self.data_cache is None or not self.data_cache.funding_rates:
             return None
         
-        # 找toTimestamp之前最近的CapitalRate
+        # Find the latest funding rate before timestamp
         latest_fr = None
         for fr in self.data_cache.funding_rates:
             if fr.timestamp <= timestamp:
@@ -756,9 +756,9 @@ class DataReplayAgent:
     
     def is_funding_settlement_time(self, timestamp: datetime) -> bool:
         """
-        检查是否是CapitalRateSettlement timestamp
+        Check if it is a funding rate settlement time
         
-        Binance 合约CapitalRateSettlement timestamp：UTC 00:00, 08:00, 16:00
+        Binance contract funding rate settlement times: UTC 00:00, 08:00, 16:00
         """
         if timestamp.tzinfo is not None:
             ts_utc = timestamp.astimezone(timezone.utc)
@@ -767,7 +767,7 @@ class DataReplayAgent:
         utc_hour = ts_utc.hour
         utc_minute = ts_utc.minute
         
-        # 检查是否为结算时刻（允许几分钟误差）
+        # Check if it is settlement time (allow a few minutes tolerance)
         if utc_hour in [0, 8, 16] and utc_minute < 10:
             return True
         return False
@@ -778,7 +778,7 @@ class DataReplayAgent:
         df_15m: pd.DataFrame,
         df_1h: pd.DataFrame
     ) -> bool:
-        """检查多周期数据对齐性（基于索引Timestamp）"""
+        """Check multi-timeframe data alignment (based on index timestamps)"""
         if df_5m.empty or df_15m.empty or df_1h.empty:
             return False
 

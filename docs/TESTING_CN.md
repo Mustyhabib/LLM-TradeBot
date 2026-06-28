@@ -1,76 +1,76 @@
-# LLM-TradeBot 测试指南（小白版）
+# LLM-TradeBot Testing Guide (Beginner-Friendly)
 
-## 1. 先记住这三条
+## 1. Remember These Three Rules
 
-1. 永远先跑测试模式，不要直接实盘。
-2. 每次改代码后先跑自动测试，再启动机器人。
-3. 测试通过不代表必赚，只代表“代码没有明显坏掉”。
+1. Always run test mode first, never go live directly.
+2. After every code change, run automated tests before starting the bot.
+3. Passing tests does not guarantee profits, only that "the code is not obviously broken".
 
-## 2. 一键测试（推荐）
+## 2. One-Click Test (Recommended)
 
-在项目根目录执行：
+Run from the project root:
 
 ```bash
 python3 scripts/run_tests.py
 ```
 
-预期结果类似：
+Expected output:
 
 ```text
 82 passed, 1 skipped
 ```
 
-说明：
+Explanation:
 
-- `passed` 是通过的测试数量。
-- `skipped` 是跳过的测试（通常因为本地没启动 Dashboard 服务）。
+- `passed` is the number of tests that passed.
+- `skipped` is the number of skipped tests (usually because the Dashboard service is not running locally).
 
-## 3. 只测某个模块（更快）
+## 3. Test a Single Module (Faster)
 
 ```bash
 python3 scripts/run_tests.py -q tests/test_agent_config.py
 ```
 
-## 4. 启动一次安全烟雾测试（不下实盘）
+## 4. Run a Safe Smoke Test (No Live Trading)
 
 ```bash
 python3 main.py --test --headless --mode once
 ```
 
-如果返回码是 `0`，并且日志里没有 `Traceback`，基本说明主流程可运行。
+If the return code is `0` and there are no `Traceback` entries in the logs, the main flow is basically runnable.
 
-## 5. 常见失败与处理
+## 5. Common Failures and Solutions
 
-### 情况 A：`Connection refused`（localhost:8000）
+### Case A: `Connection refused` (localhost:8000)
 
-原因：某些测试依赖本地 Web 服务，但你没启动。
+Cause: Some tests depend on a local web service that is not running.
 
-处理：
+Solution:
 
-1. 这是正常情况，测试会自动 skip，不影响主测试结果。
-2. 如果你要验证 UI 接口，再单独启动服务后重跑。
+1. This is normal; the test will auto-skip and won't affect the main test results.
+2. If you want to verify UI endpoints, start the service separately and re-run.
 
-### 情况 B：`ModuleNotFoundError` 或依赖错误
+### Case B: `ModuleNotFoundError` or dependency errors
 
-处理：
+Solution:
 
 ```bash
 pip install -r requirements.txt
 pip install pytest
 ```
 
-然后重跑：
+Then re-run:
 
 ```bash
 python3 scripts/run_tests.py
 ```
 
-### 情况 C：测试通过但运行时告警
+### Case C: Tests pass but runtime warnings appear
 
-建议先记录告警，再逐步清理；优先处理会导致下单错误、风控失效、进程崩溃的告警。
+It is recommended to record the warnings first, then clean them up gradually; prioritize warnings that could cause order errors, risk control failures, or process crashes.
 
-## 6. 你每天可以照做的节奏
+## 6. Daily Routine You Can Follow
 
 1. `python3 scripts/run_tests.py`
 2. `python3 main.py --test --headless --mode once`
-3. 看日志是否异常，再决定是否继续长时间测试模式
+3. Check logs for anomalies, then decide whether to continue with extended test mode

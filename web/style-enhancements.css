@@ -1,10 +1,10 @@
 /* ========================================
    LLM-TradeBot UI Enhancement Patch
    Version: 2.0
-   优化重点：玻璃态、动画、交互体验
+   Optimization focus: Glassmorphism, animations, interaction experience
    ======================================== */
 
-/* 1. 增强玻璃态效果 */
+/* 1. Enhanced glassmorphism effect */
 .glass-panel {
     background: linear-gradient(135deg,
             rgba(5, 7, 10, 0.85) 0%,
@@ -23,7 +23,7 @@
         inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
-/* 2. 动态背景网格 */
+/* 2. Dynamic background grid */
 body::after {
     content: '';
     position: fixed;
@@ -51,7 +51,7 @@ body::after {
     }
 }
 
-/* 3. 表格行悬停效果 - 简化版（移除了干扰列对齐的 ::before 伪元素） */
+/* 3. Table row hover effect - simplified (removed ::before pseudo-element that interfered with column alignment) */
 #decision-table tbody tr,
 #trade-table tbody tr {
     transition: background 0.2s ease;
@@ -62,7 +62,7 @@ body::after {
     background: rgba(240, 185, 11, 0.08);
 }
 
-/* 4. 按钮波纹效果 */
+/* 4. Button ripple effect */
 .btn-control {
     position: relative;
     overflow: hidden;
@@ -87,7 +87,7 @@ body::after {
     height: 200px;
 }
 
-/* 5. 渐变文字效果（标题） */
+/* 5. Gradient text effect (headings) */
 .card h2 {
     background: linear-gradient(135deg,
             #f8f5e6 0%,
@@ -99,7 +99,7 @@ body::after {
     background-size: 200% auto;
 }
 
-/* 6. 数据更新闪烁效果 */
+/* 6. Data update flash effect */
 @keyframes dataUpdate {
     0% {
         box-shadow: 0 0 0 0 rgba(0, 214, 143, 0.4);
@@ -118,7 +118,7 @@ body::after {
     animation: dataUpdate 0.6s ease-out;
 }
 
-/* 7. 徽章脉冲效果 */
+/* 7. Badge pulse effect */
 .badge.online,
 .badge.running {
     position: relative;
@@ -149,7 +149,7 @@ body::after {
     }
 }
 
-/* 8. 图表容器优化 */
+/* 8. Chart container optimization */
 .chart-container-lg {
     background: rgba(0, 0, 0, 0.2);
     border-radius: 12px;
@@ -172,7 +172,7 @@ body::after {
             transparent);
 }
 
-/* 9. 改进按钮设置样式 */
+/* 9. Improved button settings style */
 .btn-settings-elegant {
     position: relative;
     overflow: hidden;
@@ -198,7 +198,7 @@ body::after {
     box-shadow: 0 6px 20px rgba(240, 185, 11, 0.25);
 }
 
-/* 10. 状态指示器改进 */
+/* 10. Status indicator improvement */
 .status-item {
     position: relative;
     overflow: hidden;
@@ -231,7 +231,7 @@ body::after {
     }
 }
 
-/* 11. Logo 浮动效果 */
+/* 11. Logo floating effect */
 .logo .icon {
     animation: logoFloat 3s ease-in-out infinite;
 }
@@ -248,7 +248,7 @@ body::after {
     }
 }
 
-/* 12. 滚动条美化 */
+/* 12. Scrollbar beautification */
 .table-container::-webkit-scrollbar {
     width: 10px;
     height: 10px;
@@ -269,7 +269,7 @@ body::after {
     background: linear-gradient(180deg, #00f0ff, #f0b90b);
 }
 
-/* 13. 输入框焦点效果 */
+/* 13. Input focus effect */
 input:focus,
 select:focus,
 textarea:focus {
@@ -278,7 +278,7 @@ textarea:focus {
     box-shadow: 0 0 0 3px rgba(240, 185, 11, 0.12) !important;
 }
 
-/* 14. 模态框动画 */
+/* 14. Modal animation */
 .modal-overlay {
     position: fixed;
     inset: 0;
@@ -426,7 +426,7 @@ textarea:focus {
     }
 }
 
-/* 15. 数值颜色增强 */
+/* 15. Value color enhancement */
 .val.pos {
     color: #00ff9d;
     text-shadow: 0 0 10px rgba(0, 255, 157, 0.3);
@@ -437,7 +437,7 @@ textarea:focus {
     text-shadow: 0 0 10px rgba(255, 71, 87, 0.3);
 }
 
-/* 16. 加载状态 */
+/* 16. Loading state */
 @keyframes shimmer {
     0% {
         background-position: -1000px 0;
@@ -457,16 +457,16 @@ textarea:focus {
     animation: shimmer 2s infinite;
 }
 
-/* 17. 响应式优化 */
+/* 17. Responsive optimization */
 @media (max-width: 768px) {
     .glass-panel:hover {
         transform: none;
-        /* 移动端禁用悬停效果 */
+        /* Disabled on mobile */
     }
 
     body::after {
         display: none;
-        /* 移动端禁用背景网格 */
+        /* Disabled on mobile */
     }
 }
 
@@ -484,7 +484,7 @@ textarea:focus {
     }
 }
 
-/* 18. 打印样式优化 */
+/* 18. Print style optimization */
 @media print {
     .glass-panel {
         background: white !important;

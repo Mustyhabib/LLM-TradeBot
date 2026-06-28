@@ -1,31 +1,31 @@
 # 🚀 Quick Start Guide
 
-## 方式一：本地安装（推荐开发）
+## Method 1: Local Installation (Recommended for Development)
 
-### 1. 克隆项目
+### 1. Clone the Project
 
 ```bash
 git clone <your-repo-url>
 cd LLM-TradeBot
 ```
 
-### 2. 一键安装
+### 2. One-Click Install
 
 ```bash
 chmod +x install.sh
 ./install.sh
 ```
 
-安装脚本会自动：
+The install script will automatically:
 
-- ✅ 检测 Python 版本（需要 3.11+）
-- ✅ 创建虚拟环境
-- ✅ 安装所有依赖
-- ✅ 生成 `.env` 配置文件
+- ✅ Detect Python version (requires 3.11+)
+- ✅ Create virtual environment
+- ✅ Install all dependencies
+- ✅ Generate `.env` configuration file
 
-### 3. 配置 API Keys
+### 3. Configure API Keys
 
-编辑 `.env` 文件，填入你的 API 密钥：
+Edit `.env` file and fill in your API keys:
 
 ```bash
 # Binance API
@@ -37,52 +37,52 @@ BINANCE_TESTNET=true
 DEEPSEEK_API_KEY=your_deepseek_api_key
 ```
 
-### 4. 一键启动
+### 4. One-Click Start
 
 ```bash
 ./start.sh
 ```
 
-启动脚本会自动：
+The start script will automatically:
 
-- ✅ 激活虚拟环境
-- ✅ 检查环境变量
-- ✅ 启动 Dashboard（默认测试模式）
+- ✅ Activate virtual environment
+- ✅ Check environment variables
+- ✅ Start Dashboard (test mode by default)
 
-访问 Dashboard: **<http://localhost:8000>**
+Visit Dashboard: **<http://localhost:8000>**
 
 ---
 
-## 方式二：Docker 部署（推荐生产）
+## Method 2: Docker Deployment (Recommended for Production)
 
-### 1. 克隆项目
+### 1. Clone the Project
 
 ```bash
 git clone <your-repo-url>
 cd LLM-TradeBot
 ```
 
-### 2. 配置环境变量
+### 2. Configure Environment Variables
 
 ```bash
 cp .env.example .env
-# 编辑 .env 填入 API keys
+# Edit .env and fill in API keys
 ```
 
-### 3. 一键启动
+### 3. One-Click Start
 
 ```bash
 cd docker
 docker-compose up -d
 ```
 
-### 4. 查看日志
+### 4. View Logs
 
 ```bash
 docker-compose logs -f
 ```
 
-### 5. 停止服务
+### 5. Stop Service
 
 ```bash
 docker-compose down
@@ -90,37 +90,37 @@ docker-compose down
 
 ---
 
-## 启动参数
+## Startup Parameters
 
-### 本地启动
+### Local Startup
 
 ```bash
-# 测试模式 + 持续运行
+# Test mode + continuous run
 ./start.sh --test --mode continuous
 
-# 生产模式
+# Production mode
 ./start.sh --mode continuous
 
-# 单次运行
+# Single run
 ./start.sh --test
 ```
 
-### Docker 启动
+### Docker Startup
 
-修改 `docker/docker-compose.yml` 中的 `CMD` 参数。
+Modify the `CMD` parameters in `docker/docker-compose.yml`.
 
 ---
 
-## 快速自检（推荐小白先跑）
+## Quick Self-Check (Recommended for Beginners)
 
 ```bash
-# 运行完整测试集（自动隔离外部 pytest 插件污染）
+# Run full test suite (automatically isolates external pytest plugin pollution)
 python3 scripts/run_tests.py
 ```
 
-详细说明见：`docs/TESTING_CN.md`
+For details, see: `docs/TESTING_CN.md`
 
-如需只跑某个文件，可附加 pytest 参数：
+To run only a specific file, append pytest parameters:
 
 ```bash
 python3 scripts/run_tests.py -q tests/test_agent_config.py
@@ -128,33 +128,33 @@ python3 scripts/run_tests.py -q tests/test_agent_config.py
 
 ---
 
-## 常见问题
+## Common Issues
 
-### Q: Python 版本不符合要求？
+### Q: Python version not meeting requirements?
 
-**A**: 安装 Python 3.11+
+**A**: Install Python 3.11+
 
 - macOS: `brew install python@3.11`
 - Ubuntu: `sudo apt install python3.11`
 
-### Q: 依赖安装失败？
+### Q: Dependency installation failed?
 
-**A**: 确保已安装编译工具
+**A**: Ensure build tools are installed
 
 - macOS: `xcode-select --install`
 - Ubuntu: `sudo apt install build-essential`
 
-### Q: Dashboard 无法访问？
+### Q: Dashboard not accessible?
 
-**A**: 检查端口 8000 是否被占用
+**A**: Check if port 8000 is occupied
 
 ```bash
 lsof -i :8000
 ```
 
-### Q: Docker 构建失败？
+### Q: Docker build failed?
 
-**A**: 确保 Docker 已安装并运行
+**A**: Ensure Docker is installed and running
 
 ```bash
 docker --version
@@ -163,30 +163,30 @@ docker-compose --version
 
 ---
 
-## 目录结构
+## Directory Structure
 
 ```
 LLM-TradeBot/
-├── install.sh          # 一键安装脚本
-├── start.sh            # 一键启动脚本
-├── main.py             # 主程序
-├── requirements.txt    # Python 依赖
-├── .env.example        # 环境变量模板
+├── install.sh          # One-click install script
+├── start.sh            # One-click start script
+├── main.py             # Main program
+├── requirements.txt    # Python dependencies
+├── .env.example        # Environment variable template
 ├── docker/
 │   ├── Dockerfile
 │   └── docker-compose.yml
-├── src/                # 源代码
-├── data/               # 数据目录
-├── logs/               # 日志目录
-└── web/                # Dashboard 前端
+├── src/                # Source code
+├── data/               # Data directory
+├── logs/               # Log directory
+└── web/                # Dashboard frontend
 ```
 
 ---
 
-## 下一步
+## Next Steps
 
-1. ✅ 访问 Dashboard: <http://localhost:8000>
-2. ✅ 点击 "Start" 开始交易
-3. ✅ 查看实时决策和分析
+1. ✅ Visit Dashboard: <http://localhost:8000>
+2. ✅ Click "Start" to begin trading
+3. ✅ View real-time decisions and analysis
 
-**祝交易顺利！** 🎉
+**Wishing you successful trading!** 🎉

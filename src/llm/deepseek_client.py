@@ -1,8 +1,8 @@
 """
-DeepSeek 客户端实现
-==================
+DeepSeek Client Implementation
+==============================
 
-DeepSeek 使用 OpenAI 兼容 API，只需修改默认配置。
+DeepSeek uses an OpenAI-compatible API, only the default configuration needs to be modified.
 """
 
 from .openai_client import OpenAIClient
@@ -10,9 +10,9 @@ from .openai_client import OpenAIClient
 
 class DeepSeekClient(OpenAIClient):
     """
-    DeepSeek 客户端
-    
-    继承 OpenAI 客户端，使用 OpenAI 兼容 API。
+    DeepSeek client
+
+    Inherits from OpenAI client, uses OpenAI-compatible API.
     """
     
     DEFAULT_BASE_URL = "https://api.deepseek.com"

@@ -1,34 +1,34 @@
 """
-🤖 LLM-TradeBot - 多Agent架构主循环
+🤖 LLM-TradeBot - Multi-Agent Architecture Main Loop
 ===========================================
 
-集成:
-1. 🕵️ DataSyncAgent - 异步并发数据采集
-2. 👨‍🔬 QuantAnalystAgent - 量化信号分析
-3. ⚖️ DecisionCoreAgent - 加权投票决策
-4. 👮 RiskAuditAgent - 风控审计拦截
+Integrations:
+1. 🕵️ DataSyncAgent - Asynchronous concurrent data collection
+2. 👨‍🔬 QuantAnalystAgent - Quantitative signal analysis
+3. ⚖️ DecisionCoreAgent - Weighted voting decision
+4. 👮 RiskAuditAgent - Risk audit interception
 
-优化:
-- 异步并发执行（减少60%等待时间）
-- 双视图数据结构（stable + live）
-- 分层信号分析（趋势 + 震荡）
-- 多周期对齐决策
-- 止损方向自动修正
-- 一票否决风控
+Optimizations:
+- Asynchronous concurrent execution (reduces wait time by 60%)
+- Dual-view data structure (stable + live)
+- Layered signal analysis (trend + oscillation)
+- Multi-period aligned decisions
+- Automatic stop-loss direction correction
+- Single-veto risk control
 
 Author: AI Trader Team
 Date: 2025-12-19
 """
 
-# 版本号: v+日期+迭代次数
+# Version: v+date+iteration count
 VERSION = "v20260111_3"
 
 import sys
 import os
 from dotenv import load_dotenv
 
-# 加载 .env 文件，但不覆盖已存在的系统环境变量
-# 系统环境变量优先于 .env 文件配置
+# Load .env file, but do not override existing system environment variables
+# System environment variables take precedence over .env file configuration
 load_dotenv(override=False)
 
 # Deployment mode detection: 'local' or 'railway'
@@ -60,7 +60,7 @@ from src.server.state import global_state
 print("[DEBUG] Importing uvicorn...")
 import uvicorn
 
-# 导入多Agent
+# Import Multi-Agent
 print("[DEBUG] Importing PredictAgent...")
 from src.agents import PredictAgent
 print("[DEBUG] Importing server.app...")
@@ -70,8 +70,8 @@ from src.server.state import global_state
 print("[DEBUG] Importing MultiAgentTradingBot")
 from src.trading import MultiAgentTradingBot, TradingParameters
 
-# ✅ [新增] 导入 TradingLogger 以便初始化数据库
-# FIXME: TradingLogger 的 SQLAlchemy 导入会阻塞启动，改为延迟导入
+# ✅ [NEW] Import TradingLogger to initialize the database
+# FIXME: TradingLogger's SQLAlchemy import blocks startup, switched to lazy import
 # from src.monitoring.logger import TradingLogger
 print("[DEBUG] All imports complete!")
 
@@ -86,28 +86,27 @@ def start_server():
     uvicorn.run(app, host=host, port=port, log_level="error")
 
 # ============================================
-# 主入口
+# Main entry point
 # ============================================
 def main():
-    """主函数"""
+    """Main function"""
     import argparse
     
-    parser = argparse.ArgumentParser(description='多Agent交易机器人')
+    parser = argparse.ArgumentParser(description='Multi-Agent Trading Bot')
     mode_group = parser.add_mutually_exclusive_group()
-    mode_group.add_argument('--test', action='store_true', help='测试模式')
-    mode_group.add_argument('--live', action='store_true', help='实盘模式')
-    parser.add_argument('--max-position', type=float, default=100.0, help='最大单笔金额')
-    parser.add_argument('--leverage', type=int, default=1, help='杠杆倍数')
-    parser.add_argument('--stop-loss', type=float, default=1.0, help='止损百分比')
-    parser.add_argument('--take-profit', type=float, default=2.0, help='止盈百分比')
-    parser.add_argument('--kline-limit', type=int, default=300, help='K线拉取数量 (用于 warmup 测试)')
-    parser.add_argument('--symbols', type=str, default='', help='覆盖交易对 (CSV, 例如: BTCUSDT,ETHUSDT)')
-    parser.add_argument('--skip-auto3', action='store_true', help='在 once 模式跳过 AUTO3 解析')
-    parser.add_argument('--mode', choices=['once', 'continuous'], default='continuous', help='运行模式')
-    parser.add_argument('--interval', type=float, default=3.0, help='持续运行间隔（分钟）')
+    mode_group.add_argument('--test', action='store_true', help='Test mode')
+    mode_group.add_argument('--live', action='store_true', help='Live mode')
+    parser.add_argument('--max-position', type=float, default=100.0, help='Maximum single position amount')
+    parser.add_argument('--leverage', type=int, default=1, help='Leverage multiplier')
+    parser.add_argument('--stop-loss', type=float, default=1.0, help='Stop-loss percentage')
+    parser.add_argument('--take-profit', type=float, default=2.0, help='Take-profit percentage')
+    parser.add_argument('--kline-limit', type=int, default=300, help='K-line pull quantity (for warmup test)')
+    parser.add_argument('--symbols', type=str, default='', help='Override trading pairs (CSV, e.g., BTCUSDT,ETHUSDT)')
+    parser.add_argument('--skip-auto3', action='store_true', help='Skip AUTO3 parsing in once mode')
+    parser.add_argument('--mode', choices=['once', 'continuous'], default='continuous', help='Running mode')
+    parser.add_argument('--interval', type=float, default=3.0, help='Continuous running interval (minutes)')
     # CLI Headless Mode
-    parser.add_argument('--headless', action='store_true', help='无头模式：不启动 Web Dashboard，在终端显示实时数据')
-    
+    parser.add_argument('--headless', action='store_true', help='Headless mode: Do not start Web Dashboard, display real-time data in terminal')
     args = parser.parse_args()
     
     # [NEW] Check RUN_MODE from .env (Config Manager integration)
@@ -130,25 +129,25 @@ def main():
     print(f"🔧 Startup Mode: {'TEST' if args.test else 'LIVE'} (Env: {env_run_mode})")
     
     # ==============================================================================
-    # 🛠️ [修复核心]：强制初始化数据库表结构
-    # 只要实例化 TradingLogger，就会自动执行 _init_database() 创建 PostgreSQL 表
+    # 🛠️ [CORE FIX]: Force initialize database table structure
+    # Instantiating TradingLogger will auto-execute _init_database() to create PostgreSQL tables
     # ==============================================================================
     try:
         log.info("🛠️ Checking/initializing database tables...")
-        # 这一步至关重要：它会连接数据库并运行 CREATE TABLE 语句
+        # This step is critical: it connects to the database and runs CREATE TABLE statements
         # Lazy import to avoid blocking startup (FIXME at line 112)
         from src.monitoring.logger import TradingLogger
         _db_init = TradingLogger()
         log.info("✅ Database tables ready")
     except Exception as e:
         log.error(f"❌ Database init failed (non-fatal, continuing): {e}")
-        # 注意：这里我们捕获异常但不退出，以免影响主程序启动，但请务必关注日志
+        # Note: We catch the exception here but do not exit, to avoid affecting main program startup. However, please monitor the logs closely.
     # ==============================================================================
     
-    # 根据部署模式设置默认周期间隔
-    # Local: 1 分钟 (开发测试用)
-    # Railway: 5 分钟 (生产环境)
-    if args.interval == 3.0:  # 如果用户没有通过 CLI 指定间隔
+    # Set default cycle interval based on deployment mode
+    # Local: 1 minute (for development/testing)
+    # Railway: 5 minutes (production environment)
+    if args.interval == 3.0:  # If user did not specify interval via CLI
         if DEPLOYMENT_MODE == 'local':
             args.interval = 1.0
             print(f"🏠 Local mode: Cycle interval set to 1 minute")
@@ -156,7 +155,7 @@ def main():
             args.interval = 5.0
             print(f"☁️ Railway mode: Cycle interval set to 5 minutes")
       
-    # 交易参数
+    # Trading parameters
     used_kline_limit = int(args.kline_limit) if args.kline_limit and args.kline_limit > 0 else 300
 
     trading_parameters = TradingParameters(
@@ -168,14 +167,14 @@ def main():
         test_mode=args.test
     )
     
-    # 创建机器人
+    # Create bot
     bot = MultiAgentTradingBot(trading_parameters)
 
     # Set initial execution mode before dashboard starts
     # Require explicit user action (Start button) to begin trading
     global_state.execution_mode = "Stopped"
     
-    # 启动 Dashboard Server (跳过 headless 模式) - 优先启动，让用户能立即访问
+    # Start Dashboard Server (skip headless mode) - Start first so users can access immediately
     if not args.headless:
         try:
             server_thread = threading.Thread(target=start_server, daemon=True)
@@ -220,14 +219,14 @@ def main():
         log.info("🔄 Auto-refresh started (12h interval)")
         log.info("=" * 60)
     
-    # 运行
+    # Run
     if args.mode == 'once':
         result = bot.run_once()
-        print(f"\n最终结果: {json.dumps(result, indent=2)}")
+        print(f"\nFinal result: {json.dumps(result, indent=2)}")
         
-        # 显示统计
+        # Display statistics
         stats = bot.get_statistics()
-        print(f"\n统计信息:")
+        print(f"\nStatistics:")
         print(json.dumps(stats, indent=2))
         
         # Keep alive briefly for server to be reachable if desired, 

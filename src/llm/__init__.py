@@ -1,28 +1,29 @@
 """
-LLM 模块
-========
+LLM Module
+==========
 
-提供统一的多 LLM 提供商接口。
+Provides a unified multi-LLM provider interface.
 
-支持的提供商：
+Supported providers:
 - OpenAI (GPT-4, GPT-3.5)
 - DeepSeek (deepseek-chat, deepseek-coder)
 - Claude (Anthropic)
-- Qwen (通义千问)
+- Qwen (Tongyi Qianwen)
 - Gemini (Google)
 - Kimi (Moonshot)
 - MiniMax
-- GLM (智谱)
+- GLM (Zhipu)
+- OpenRouter (Owl-alpha)
 
-使用示例：
+Usage example:
 
     from src.llm import create_client, LLMConfig
 
-    # 创建 DeepSeek 客户端
+    # Create DeepSeek client
     config = LLMConfig(api_key="sk-xxx", model="deepseek-chat")
     client = create_client("deepseek", config)
-    
-    # 发送请求
+
+    # Send request
     response = client.chat(
         system_prompt="You are a helpful assistant",
         user_prompt="Hello!"
@@ -42,9 +43,10 @@ from .gemini_client import GeminiClient
 from .kimi_client import KimiClient
 from .minimax_client import MiniMaxClient
 from .glm_client import GLMClient
+from .openrouter_client import OpenRouterClient
 
 __all__ = [
-    # 核心接口
+    # Core interfaces
     "LLMConfig",
     "BaseLLMClient",
     "ChatMessage",
@@ -52,8 +54,9 @@ __all__ = [
     "create_client",
     "get_supported_providers",
     "register_provider",
-    # 具体客户端
+    # Concrete clients
     "OpenAIClient",
+    "OpenRouterClient",
     "DeepSeekClient",
     "ClaudeClient",
     "QwenClient",

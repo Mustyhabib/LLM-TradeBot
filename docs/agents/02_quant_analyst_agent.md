@@ -1,69 +1,69 @@
 # 👨‍🔬 QuantAnalystAgent (The Strategist)
 
-> 量化策略师 - 多维度市场信号分析
+> Quantitative Strategist - Multi-dimensional market signal analysis
 
-## 概述
+## Overview
 
-QuantAnalystAgent 是多 Agent 框架的分析引擎，由三个子 Agent 组成，分别负责趋势、震荡和情绪分析，输出标准化的量化得分供决策层使用。
+QuantAnalystAgent is the analysis engine of the multi-Agent framework, composed of three sub-Agents responsible for trend, oscillator, and sentiment analysis respectively, outputting standardized quantitative scores for the decision layer.
 
-## 核心职责
+## Core Responsibilities
 
-1. **趋势分析** - 基于 EMA/MACD 计算多周期趋势得分
-2. **震荡分析** - 基于 RSI 检测超买超卖状态
-3. **情绪分析** - 整合资金流、资金费率、OI 等市场情绪指标
-4. **综合评估** - 加权汇总生成综合市场得分
+1. **Trend Analysis** - Calculate multi-timeframe trend scores based on EMA/MACD
+2. **Oscillator Analysis** - Detect overbought/oversold conditions based on RSI
+3. **Sentiment Analysis** - Integrate market sentiment indicators like fund flow, funding rate, OI
+4. **Comprehensive Assessment** - Weighted summary to generate composite market score
 
-## 架构
+## Architecture
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────┐
 │                    QuantAnalystAgent                             │
 ├─────────────────────────────────────────────────────────────────┤
-│ 输入：MarketSnapshot (来自 DataSyncAgent)                        │
+│ Input: MarketSnapshot (from DataSyncAgent)                       │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                  │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐          │
 │  │TrendSubAgent │  │OscillatorSub │  │SentimentSub  │          │
-│  │  (趋势分析)   │  │  (震荡分析)   │  │  (情绪分析)   │          │
+│  │  (Trend)     │  │  (Oscillator)│  │  (Sentiment) │          │
 │  ├──────────────┤  ├──────────────┤  ├──────────────┤          │
-│  │ • EMA 金叉    │  │ • RSI 超买    │  │ • 资金流      │          │
-│  │ • MACD 动量   │  │ • RSI 超卖    │  │ • 资金费率    │          │
-│  │ • 实时修正    │  │ • 多周期 RSI  │  │ • OI 变化     │          │
+│  │ • EMA cross  │  │ • RSI OB     │  │ • Fund flow  │          │
+│  │ • MACD mom.  │  │ • RSI OS     │  │ • Funding    │          │
+│  │ • Realtime   │  │ • Multi-RSI  │  │ • OI change  │          │
 │  └──────────────┘  └──────────────┘  └──────────────┘          │
 │        │                  │                  │                  │
 │        └──────────────────┴──────────────────┘                  │
 │                           │                                      │
-│                    综合加权得分                                   │
-│             (趋势40% + 震荡30% + 情绪30%)                         │
+│                    Composite Weighted Score                       │
+│             (Trend 40% + Oscillator 30% + Sentiment 30%)         │
 ├─────────────────────────────────────────────────────────────────┤
-│ 输出：quant_analysis Dict                                        │
-│   - trend: 趋势分析结果                                          │
-│   - oscillator: 震荡分析结果                                     │
-│   - sentiment: 情绪分析结果                                      │
-│   - comprehensive: 综合评估                                      │
+│ Output: quant_analysis Dict                                      │
+│   - trend: Trend analysis result                                 │
+│   - oscillator: Oscillator analysis result                       │
+│   - sentiment: Sentiment analysis result                         │
+│   - comprehensive: Comprehensive assessment                      │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-## 子 Agent 详解
+## Sub-Agent Details
 
-### TrendSubAgent (趋势分析员)
+### TrendSubAgent (Trend Analyst)
 
-**得分逻辑**（-100 ~ +100）：
+**Score Logic** (-100 ~ +100):
 
-- 1h EMA 金叉 → +40 分 (主趋势)
-- 15m MACD 扩大 → ±30 分 (中期确认)
-- 实时 K 线修正 → ±20 分 (短期动量)
+- 1h EMA golden cross → +40 pts (main trend)
+- 15m MACD expansion → ±30 pts (mid-term confirmation)
+- Real-time candle correction → ±20 pts (short-term momentum)
 
-**输出字段**：
+**Output Fields**:
 
 ```python
 {
-    'score': int,                # 总得分
-    'trend_1h_score': int,       # 1h 趋势得分
-    'trend_15m_score': int,      # 15m 趋势得分
-    'trend_5m_score': int,       # 5m/实时修正得分
+    'score': int,                # Total score
+    'trend_1h_score': int,       # 1h trend score
+    'trend_15m_score': int,      # 15m trend score
+    'trend_5m_score': int,       # 5m/realtime correction score
     'details': {
-        '1h_trend': str,         # "上涨" / "下跌"
+        '1h_trend': str,         # "up" / "down"
         '1h_ema12': float,
         '1h_ema26': float,
         '15m_trend': str,
@@ -73,15 +73,15 @@ QuantAnalystAgent 是多 Agent 框架的分析引擎，由三个子 Agent 组成
 }
 ```
 
-### OscillatorSubAgent (震荡分析员)
+### OscillatorSubAgent (Oscillator Analyst)
 
-**得分逻辑**：
+**Score Logic**:
 
-- RSI > 75 → -80 (超买严重)
-- RSI < 25 → +80 (超卖严重)
-- 权重：5m 30%, 15m 30%, 1h 40%
+- RSI > 75 → -80 (severely overbought)
+- RSI < 25 → +80 (severely oversold)
+- Weight: 5m 30%, 15m 30%, 1h 40%
 
-**输出字段**：
+**Output Fields**:
 
 ```python
 {
@@ -89,33 +89,33 @@ QuantAnalystAgent 是多 Agent 框架的分析引擎，由三个子 Agent 组成
     'osc_5m_score': int,
     'osc_15m_score': int,
     'osc_1h_score': int,
-    'rsi_5m': float,          # 供 dashboard 显示
+    'rsi_5m': float,          # For dashboard display
     'rsi_15m': float,
     'rsi_1h': float,
     'details': {...}
 }
 ```
 
-### SentimentSubAgent (情绪分析员)
+### SentimentSubAgent (Sentiment Analyst)
 
-**数据源**：
+**Data Sources**:
 
-1. **机构资金流** - 来自外部量化 API
-2. **资金费率** - Binance 原生数据 (逆向指标)
-3. **OI 变化率** - 来自 OITracker 历史追踪
+1. **Institutional Fund Flow** - From external quantitative API
+2. **Funding Rate** - Binance native data (contrarian indicator)
+3. **OI Change Rate** - From OITracker historical tracking
 
-**得分逻辑**：
+**Score Logic**:
 
-- 机构净流入 1h > 0 → +30 分
-- 资金费率 > 0.03% → -30 分 (多头拥挤)
-- OI 24h 变化 > 10% → +10 分 (市场活跃)
+- Institutional net inflow 1h > 0 → +30 pts
+- Funding rate > 0.03% → -30 pts (long crowding)
+- OI 24h change > 10% → +10 pts (market active)
 
-**输出字段**：
+**Output Fields**:
 
 ```python
 {
     'score': int,
-    'oi_change_24h_pct': float,   # 24h OI 变化率
+    'oi_change_24h_pct': float,   # 24h OI change rate
     'total_sentiment_score': int,
     'details': {
         'inst_netflow_1h': float,
@@ -126,30 +126,30 @@ QuantAnalystAgent 是多 Agent 框架的分析引擎，由三个子 Agent 组成
 }
 ```
 
-## 综合评估
+## Comprehensive Assessment
 
 ```python
 composite_score = (trend * 0.4) + (oscillator * 0.3) + (sentiment * 0.3)
 ```
 
-信号映射：
+Signal mapping:
 
 - score > 30 → "buy"
 - score < -30 → "sell"
 - else → "neutral"
 
-## 依赖关系
+## Dependencies
 
-```
+```text
 QuantAnalystAgent
 ├── TrendSubAgent
 ├── OscillatorSubAgent
 ├── SentimentSubAgent
 │   └── OITracker (src/utils/oi_tracker.py)
-└── MarketSnapshot (来自 DataSyncAgent)
+└── MarketSnapshot (from DataSyncAgent)
 ```
 
-## 使用示例
+## Usage Example
 
 ```python
 from src.agents.quant_analyst_agent import QuantAnalystAgent
@@ -157,17 +157,17 @@ from src.agents.quant_analyst_agent import QuantAnalystAgent
 agent = QuantAnalystAgent()
 analysis = await agent.analyze_all_timeframes(snapshot)
 
-# 访问各维度得分
+# Access scores per dimension
 trend_score = analysis['trend']['score']
 oscillator_score = analysis['oscillator']['score']
 sentiment_score = analysis['sentiment']['score']
 composite = analysis['comprehensive']['score']
 ```
 
-## 日志输出
+## Log Output
 
-Dashboard 日志格式：
+Dashboard log format:
 
 ```
-👨‍🔬 QuantAnalystAgent (The Strategist): Trend(上涨,-40) | Osc(RSI:43,0) | Sent(OI:0.1%,-10) => Score: -19/100
+👨‍🔬 QuantAnalystAgent (The Strategist): Trend(up,-40) | Osc(RSI:43,0) | Sent(OI:0.1%,-10) => Score: -19/100
 ```

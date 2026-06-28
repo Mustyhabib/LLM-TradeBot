@@ -1,7 +1,7 @@
 from enum import Enum
 
 class RiskLevel(Enum):
-    """风险等级"""
+    """Risk level"""
     SAFE = "safe"
     WARNING = "warning"
     DANGER = "danger"

@@ -94,11 +94,11 @@ async def get_system_info():
 # Public endpoint to prefill login (admin) password
 @app.get("/api/login/default")
 async def get_default_login():
-    # Railway default should always prefill EthanAlgoX
+    # Railway default should always prefill the default admin password
     if IS_RAILWAY:
-        return {"password": "EthanAlgoX"}
-    # Local: if WEB_PASSWORD is not set, fall back to EthanAlgoX
-    return {"password": WEB_PASSWORD or "EthanAlgoX"}
+        return {"password": "admin"}
+    # Local: if WEB_PASSWORD is not set, fall back to the default admin password
+    return {"password": WEB_PASSWORD or "admin"}
 
 # Authentication Endpoints
 @app.post("/api/login")
@@ -108,7 +108,7 @@ async def login(response: Response, data: LoginRequest):
     
     # Universal Login Logic (Robust for both Local and Railway)
     # 1. Admin Login: Password matches WEB_PASSWORD or hardcoded known admin passwords
-    if (WEB_PASSWORD and password == WEB_PASSWORD) or password == "admin" or password == "EthanAlgoX":
+    if (WEB_PASSWORD and password == WEB_PASSWORD) or password == "admin":
         role = 'admin'
     # 2. No guest/read-only mode: any non-admin password is invalid
     elif not WEB_PASSWORD and password == "":

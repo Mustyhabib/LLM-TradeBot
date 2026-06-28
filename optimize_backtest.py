@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-回测参数优化脚本
-自动运行多组回测，寻找最优参数组合
+Backtest Parameter Optimization Script
+Automatically run multiple backtests to find optimal parameter combinations
 """
 
 import asyncio
@@ -17,13 +17,13 @@ from src.backtest.engine import BacktestEngine, BacktestConfig
 
 
 class BacktestOptimizer:
-    """回测参数优化器"""
+    """Backtest Parameter Optimizer"""
     
     def __init__(self):
         self.results = []
     
     async def run_single_backtest(self, config: BacktestConfig) -> Dict:
-        """运行单次回测"""
+        """Run single backtest"""
         try:
             engine = BacktestEngine(config)
             result = await engine.run()
@@ -61,10 +61,10 @@ class BacktestOptimizer:
             }
     
     async def optimize_time_periods(self, symbol: str = "BTCUSDT", capital: float = 10000):
-        """优化不同时间周期的收益率"""
+        """Optimize returns across different time periods"""
         
         print("\n" + "="*60)
-        print("🔍 开始时间周期优化")
+        print("🔍 Starting time period optimization")
         print("="*60)
         
         # 定义测试的时间周期（从今天往前推）

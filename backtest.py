@@ -1,20 +1,20 @@
 #!/usr/bin/env python3
 """
-LLM-TradeBot 回测系统 CLI
+LLM-TradeBot Backtest System CLI
 ==========================
 
-用法:
+Usage:
     python backtest.py --start 2024-01-01 --end 2024-12-01 \
         --symbol BTCUSDT --capital 10000 --output reports/
 
-参数:
-    --start       回测开始日期 (YYYY-MM-DD)
-    --end         回测结束日期 (YYYY-MM-DD)
-    --symbol      交易对 (默认: BTCUSDT)
-    --capital     初始资金 (USDT, 默认: 10000)
-    --step        时间步长 (1=5分钟, 3=15分钟, 12=1小时, 默认: 3)
-    --output      报告输出目录 (默认: reports/)
-    --no-report   不生成 HTML 报告
+Parameters:
+    --start       Backtest start date (YYYY-MM-DD)
+    --end         Backtest end date (YYYY-MM-DD)
+    --symbol      Trading pair (default: BTCUSDT)
+    --capital     Initial capital (USDT, default: 10000)
+    --step        Time step (1=5min, 3=15min, 12=1hour, default: 3)
+    --output      Report output directory (default: reports/)
+    --no-report   Do not generate HTML report
 
 Author: AI Trader Team
 Date: 2025-12-31
@@ -25,26 +25,26 @@ import asyncio
 import sys
 import os
 
-# 添加项目根目录到路径
+# Add project root directory to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from datetime import datetime
 
 
 def parse_args():
-    """解析命令行参数"""
+    """Parse command line arguments"""
     parser = argparse.ArgumentParser(
         description="LLM-TradeBot Backtester",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  # 回测 2024 年全年 BTC
+  # Backtest BTC for the whole year 2024
   python backtest.py --start 2024-01-01 --end 2024-12-31 --symbol BTCUSDT
 
-  # 快速回测（每小时决策）
+  # Quick backtest (hourly decisions)
   python backtest.py --start 2024-12-01 --end 2024-12-31 --step 12
 
-  # 指定初始资金
+  # Specify initial capital
   python backtest.py --start 2024-06-01 --end 2024-12-01 --capital 50000
         """
     )
@@ -53,34 +53,34 @@ Examples:
         "--start", "-s",
         type=str,
         required=True,
-        help="回测开始日期 (YYYY-MM-DD)"
+        help="Backtest start date (YYYY-MM-DD)"
     )
     
     parser.add_argument(
         "--end", "-e",
         type=str,
         required=True,
-        help="回测结束日期 (YYYY-MM-DD)"
+        help="Backtest end date (YYYY-MM-DD)"
     )
     
     parser.add_argument(
         "--symbol",
         type=str,
-        default="AUTO1",  # 默认使用 AUTO1，与实盘一致
-        help="交易对 (AUTO1=动量选币[默认], AUTO3=回测选币, 或指定如 BTCUSDT)"
+        default="AUTO1",  # Default to AUTO1, consistent with live trading
+        help="Trading pair (AUTO1=Momentum selection[default], AUTO3=Backtest selection, or specify like BTCUSDT)"
     )
     
     parser.add_argument(
         "--no-auto3",
         action="store_true",
-        help="禁用 AUTO3 自动选币，使用 --symbol 指定的币种"
+        help="Disable AUTO3 automatic selection, use --symbol specified symbol"
     )
     
     parser.add_argument(
         "--capital",
         type=float,
         default=10000.0,
-        help="初始资金 USDT (默认: 10000)"
+        help="Initial capital USDT (default: 10000)"
     )
     
     parser.add_argument(
@@ -88,41 +88,41 @@ Examples:
         type=int,
         default=3,
         choices=[1, 3, 12],
-        help="时间步长: 1=5分钟, 3=15分钟, 12=1小时 (默认: 3)"
+        help="Time step: 1=5min, 3=15min, 12=1hour (default: 3)"
     )
     
     parser.add_argument(
         "--output", "-o",
         type=str,
         default="reports",
-        help="报告输出目录 (默认: reports/)"
+        help="Report output directory (default: reports/)"
     )
     
     parser.add_argument(
         "--no-report",
         action="store_true",
-        help="不生成 HTML 报告"
+        help="Do not generate HTML report"
     )
     
     parser.add_argument(
         "--max-position",
         type=float,
         default=100.0,
-        help="最大单笔仓位 USDT (默认: 100)"
+        help="Maximum single position USDT (default: 100)"
     )
     
     parser.add_argument(
         "--stop-loss",
         type=float,
         default=1.0,
-        help="止损百分比 (默认: 1.0%%)"
+        help="Stop-loss percentage (default: 1.0%%)"
     )
     
     parser.add_argument(
         "--take-profit",
         type=float,
         default=2.0,
-        help="止盈百分比 (默认: 2.0%%)"
+        help="Take-profit percentage (default: 2.0%%)"
     )
     
     parser.add_argument(
@@ -130,27 +130,27 @@ Examples:
         type=str,
         default="agent",
         choices=["technical", "agent"],
-        help="策略模式: technical (简单EMA) 或 agent (多Agent框架, 默认: agent)"
+        help="Strategy mode: technical (Simple EMA) or agent (Multi-Agent framework, default: agent)"
     )
     
     parser.add_argument(
         "--use-llm",
         action="store_true",
-        help="启用 LLM 增强 (仅在 agent 模式下有效，会产生 API 费用)"
+        help="Enable LLM enhancement (only effective in agent mode, will incur API costs)"
     )
     
     parser.add_argument(
         "--llm-cache",
         action="store_true",
         default=True,
-        help="缓存 LLM 响应以节省费用 (默认: True)"
+        help="Cache LLM responses to save costs (default: True)"
     )
     
     return parser.parse_args()
 
 
 def validate_dates(start: str, end: str):
-    """验证日期格式"""
+    """Validate date format"""
     try:
         start_date = datetime.strptime(start, "%Y-%m-%d")
         end_date = datetime.strptime(end, "%Y-%m-%d")
@@ -171,13 +171,13 @@ def validate_dates(start: str, end: str):
 
 
 async def main():
-    """主函数"""
+    """Main function"""
     args = parse_args()
     
-    # 验证日期
+    # Validate dates
     start_date, end_date = validate_dates(args.start, args.end)
     
-    # 显示配置
+    # Display configuration
     print("\n" + "=" * 60)
     print("🔬 LLM-TradeBot Backtester")
     print("=" * 60)
@@ -194,56 +194,56 @@ async def main():
     print(f"🎯 Take Profit: {args.take_profit}%")
     print("=" * 60)
     
-    # 导入回测模块
+    # Import backtest modules
     from src.backtest.engine import BacktestEngine, BacktestConfig
     from src.backtest.report import BacktestReport
     from src.agents.symbol_selector_agent import SymbolSelectorAgent
     
-    # AUTO3/AUTO1 动态选币
+    # AUTO3/AUTO1 dynamic symbol selection
     symbols_to_test = []
     use_auto3 = args.symbol == "AUTO3" and not args.no_auto3
     use_auto1 = args.symbol == "AUTO1"
     
     if use_auto3:
-        print("\n🔝 AUTO3 启动中 - 正在选择最佳交易币种...")
+        print("\n🔝 AUTO3 starting - Selecting best trading symbols...")
         try:
             selector = SymbolSelectorAgent()
             selected = selector.get_symbols(force_refresh=False)
             if selected:
                 symbols_to_test = selected
-                print(f"✅ AUTO3 选中: {', '.join(symbols_to_test)}")
+                print(f"✅ AUTO3 selected: {', '.join(symbols_to_test)}")
             else:
-                print("⚠️ AUTO3 选币失败，使用默认 BTCUSDT")
+                print("⚠️ AUTO3 selection failed, using default BTCUSDT")
                 symbols_to_test = ['BTCUSDT']
         except Exception as e:
-            print(f"⚠️ AUTO3 选币异常: {e}，使用默认 BTCUSDT")
+            print(f"⚠️ AUTO3 selection error: {e}, using default BTCUSDT")
             symbols_to_test = ['BTCUSDT']
     elif use_auto1:
-        print("\n🎯 AUTO1 启动中 - 使用近期动量选币...")
+        print("\n🎯 AUTO1 starting - Using recent momentum selection...")
         try:
             selector = SymbolSelectorAgent()
             selected = await selector.select_auto1_recent_momentum()
             if selected:
                 symbols_to_test = selected
-                print(f"✅ AUTO1 选中: {', '.join(symbols_to_test)}")
+                print(f"✅ AUTO1 selected: {', '.join(symbols_to_test)}")
             else:
-                print("⚠️ AUTO1 选币失败，使用默认 BTCUSDT")
+                print("⚠️ AUTO1 selection failed, using default BTCUSDT")
                 symbols_to_test = ['BTCUSDT']
         except Exception as e:
-            print(f"⚠️ AUTO1 选币异常: {e}，使用默认 BTCUSDT")
+            print(f"⚠️ AUTO1 selection error: {e}, using default BTCUSDT")
             symbols_to_test = ['BTCUSDT']
     else:
         symbols_to_test = [args.symbol]
     
-    # 运行多币种回测 (AUTO3 支持)
+    # Run multi-symbol backtest (AUTO3 supported)
     all_results = []
     
     for symbol in symbols_to_test:
         print(f"\n{'='*60}")
-        print(f"🔬 回测币种: {symbol}")
+        print(f"🔬 Backtest symbol: {symbol}")
         print(f"{'='*60}")
         
-        # 创建配置
+        # Create configuration
         config = BacktestConfig(
             symbol=symbol,
             start_date=args.start,
@@ -258,10 +258,10 @@ async def main():
             llm_cache=args.llm_cache
         )
         
-        # 创建引擎
+        # Create engine
         engine = BacktestEngine(config)
         
-        # 进度显示
+        # Progress display
         last_pct = 0
         def progress_callback(data):
             nonlocal last_pct
@@ -273,10 +273,10 @@ async def main():
                 bar = "█" * filled + "░" * (bar_len - filled)
                 print(f"\r📊 Progress: [{bar}] {pct:.1f}%", end="", flush=True)
         
-        # 运行回测
+        # Run backtest
         try:
             result = await engine.run(progress_callback=progress_callback)
-            print()  # 换行
+            print()  # New line
             all_results.append((symbol, result, engine))
         except KeyboardInterrupt:
             print("\n\n⚠️ Backtest interrupted by user")
@@ -285,9 +285,9 @@ async def main():
             print(f"\n\n❌ Error during backtest for {symbol}: {e}")
             continue
     
-    # 显示所有结果汇总
+    # Display all results summary
     if not all_results:
-        print("\n❌ 没有成功完成的回测")
+        print("\n❌ No successful backtests completed")
         sys.exit(1)
     
     print("\n" + "=" * 60)
@@ -296,7 +296,7 @@ async def main():
         mode_label = " (AUTO3)"
     elif use_auto1:
         mode_label = " (AUTO1)"
-    print(f"📊 回测结果汇总{mode_label}")
+    print(f"📊 Backtest results summary{mode_label}")
     print("=" * 60)
     
     total_return_sum = 0
@@ -305,9 +305,9 @@ async def main():
         total_return_sum += m.total_return
         
         print(f"\n🪙 {symbol}:")
-        print(f"   收益: {m.total_return:+.2f}% | 回撤: {m.max_drawdown_pct:.2f}% | 胜率: {m.win_rate:.1f}% | 交易: {m.total_trades}")
+        print(f"   Return: {m.total_return:+.2f}% | Drawdown: {m.max_drawdown_pct:.2f}% | Win Rate: {m.win_rate:.1f}% | Trades: {m.total_trades}")
         
-        # 生成报告
+        # Generate report
         if not args.no_report:
             os.makedirs(args.output, exist_ok=True)
             report = BacktestReport(output_dir=args.output)
@@ -322,13 +322,13 @@ async def main():
                 },
                 filename=filename
             )
-            print(f"   📄 报告: {filepath}")
+            print(f"   📄 Report: {filepath}")
     
     if len(all_results) > 1:
-        print(f"\n📈 总收益 (所有币种): {total_return_sum:+.2f}%")
+        print(f"\n📈 Total Return (All Symbols): {total_return_sum:+.2f}%")
     
     print("\n" + "=" * 60)
-    print("✅ 回测完成!")
+    print("✅ Backtest completed!")
     print("=" * 60)
 
 

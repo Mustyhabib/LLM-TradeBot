@@ -1,71 +1,71 @@
 # 🔮 PredictAgent (The Prophet)
 
-> 预测预言家 - ML 驱动的价格走势预测
+> Prediction Prophet - ML-driven price trend prediction
 
-## 概述
+## Overview
 
-PredictAgent 是多 Agent 框架的预测引擎，使用 LightGBM 机器学习模型预测未来 30 分钟的价格上涨概率，为决策层提供数据驱动的信号。
+PredictAgent is the prediction engine of the multi-Agent framework, using a LightGBM machine learning model to predict the probability of a price increase in the next 30 minutes, providing data-driven signals for the decision layer.
 
-## 核心职责
+## Core Responsibilities
 
-1. **概率预测** - 输出未来 30 分钟价格上涨概率 (0.0 ~ 1.0)
-2. **双模式支持** - ML 模型优先，无模型时回退到规则评分
-3. **特征工程** - 处理 80+ 技术特征
-4. **自动训练** - 每 2 小时自动重新训练模型
+1. **Probability Prediction** - Output the probability of a price increase in the next 30 minutes (0.0 ~ 1.0)
+2. **Dual-Mode Support** - ML model first, falls back to rule scoring when no model is available
+3. **Feature Engineering** - Process 80+ technical features
+4. **Auto Training** - Automatically retrain the model every 2 hours
 
-## 数据流
+## Data Flow
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────┐
 │                        PredictAgent                              │
 ├─────────────────────────────────────────────────────────────────┤
-│ 输入：features Dict (来自 TechnicalFeatureEngineer)              │
-│   - 80+ 技术特征                                                 │
-│   - 价格位置、趋势强度、动量、波动率、成交量等                      │
+│ Input: features Dict (from TechnicalFeatureEngineer)             │
+│   - 80+ technical features                                      │
+│   - Price position, trend strength, momentum, volatility, volume│
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                  │
 │  ┌──────────────────────────────────────────────────────────┐   │
-│  │ 预处理：_preprocess_features                              │   │
-│  │   • 处理 NaN/Inf 异常值                                   │   │
-│  │   • 特征默认值填充                                         │   │
+│  │ Preprocessing: _preprocess_features                       │   │
+│  │   • Handle NaN/Inf outliers                              │   │
+│  │   • Feature default value filling                         │   │
 │  └──────────────────────────────────────────────────────────┘   │
 │                           │                                      │
 │              ┌────────────┴────────────┐                        │
 │              ▼                         ▼                        │
 │  ┌───────────────────┐    ┌───────────────────┐                │
-│  │   ML 模型预测      │    │   规则评分预测     │                │
+│  │   ML Model Pred.   │    │   Rule Score Pred. │                │
 │  │  (LightGBM)       │    │   (Fallback)      │                │
 │  │                   │    │                   │                │
-│  │ predict_proba()   │    │ 加权规则系统       │                │
+│  │ predict_proba()   │    │ Weighted rule sys │                │
 │  └───────────────────┘    └───────────────────┘                │
 │              │                         │                        │
 │              └────────────┬────────────┘                        │
 │                           ▼                                      │
 ├─────────────────────────────────────────────────────────────────┤
-│ 输出：PredictResult                                              │
-│   - probability_up: 上涨概率 (0.0 ~ 1.0)                        │
-│   - probability_down: 下跌概率                                   │
-│   - confidence: 置信度                                           │
+│ Output: PredictResult                                            │
+│   - probability_up: Upside probability (0.0 ~ 1.0)              │
+│   - probability_down: Downside probability                       │
+│   - confidence: Confidence level                                 │
 │   - signal: "bullish" / "bearish" / "neutral"                   │
-│   - factors: Top 5 重要特征                                      │
+│   - factors: Top 5 important features                            │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-## 关键数据结构
+## Key Data Structures
 
 ### PredictResult
 
 ```python
 @dataclass
 class PredictResult:
-    probability_up: float      # 上涨概率 (0.0 ~ 1.0)
-    probability_down: float    # 下跌概率
-    confidence: float          # 置信度
-    horizon: str               # 预测周期 (默认 "30m")
-    factors: Dict[str, float]  # 重要特征及其贡献
+    probability_up: float      # Upside probability (0.0 ~ 1.0)
+    probability_down: float    # Downside probability
+    confidence: float          # Confidence level
+    horizon: str               # Prediction horizon (default "30m")
+    factors: Dict[str, float]  # Important features and contributions
     model_type: str            # "ml_lightgbm" / "rule_based"
     timestamp: datetime
-    
+```
     @property
     def signal(self) -> str:
         if self.probability_up > 0.55:
@@ -75,53 +75,53 @@ class PredictResult:
         return "neutral"
 ```
 
-## ML 模型训练
+## ML Model Training
 
-### 标签生成 (LabelGenerator)
+### Label Generation (LabelGenerator)
 
 ```python
-# 核心参数
-horizon_minutes = 30   # 预测未来 30 分钟
-up_threshold = 0.001   # 涨幅阈值 0.1%
+# Core parameters
+horizon_minutes = 30   # Predict 30 minutes ahead
+up_threshold = 0.001   # Upside threshold 0.1%
 
-# 标签计算
-future_price = df['close'].shift(-6)  # 6 个 5m K 线 = 30 分钟
+# Label calculation
+future_price = df['close'].shift(-6)  # 6 x 5m candles = 30 minutes
 returns = (future_price - current_price) / current_price
 label = 1 if returns > 0.001 else 0
 ```
 
-### 特征工程 (TechnicalFeatureEngineer)
+### Feature Engineering (TechnicalFeatureEngineer)
 
-| 特征类别 | 数量 | 示例 |
+| Feature Category | Count | Example |
 |----------|------|------|
-| 价格相对位置 | 8 | `price_to_sma20_pct`, `bb_position` |
-| 趋势强度 | 10 | `ema_cross_strength`, `macd_momentum` |
-| 动量 | 8 | `rsi_divergence`, `rsi_slope` |
-| 波动率 | 8 | `atr_ratio`, `volatility_breakout` |
-| 成交量 | 8 | `volume_surge`, `vwap_deviation` |
-| 组合特征 | 8+ | `trend_confirmation_score` |
+| Price Relative Position | 8 | `price_to_sma20_pct`, `bb_position` |
+| Trend Strength | 10 | `ema_cross_strength`, `macd_momentum` |
+| Momentum | 8 | `rsi_divergence`, `rsi_slope` |
+| Volatility | 8 | `atr_ratio`, `volatility_breakout` |
+| Volume | 8 | `volume_surge`, `vwap_deviation` |
+| Composite Features | 8+ | `trend_confirmation_score` |
 
-### 自动训练 (ProphetAutoTrainer)
+### Auto Training (ProphetAutoTrainer)
 
 ```python
-# 配置
-interval_hours = 2.0     # 每 2 小时训练
-training_days = 7        # 使用 7 天历史数据
+# Configuration
+interval_hours = 2.0     # Train every 2 hours
+training_days = 7        # Use 7 days of historical data
 
-# 训练流程
-1. 获取历史 K 线 (约 2016 条)
-2. 计算技术指标
-3. 构建特征
-4. 生成标签
-5. 80/20 训练/验证分割
-6. LightGBM 训练
-7. 保存模型到 models/prophet_lgb_{symbol}.pkl
-8. 重新加载到 PredictAgent
+# Training flow
+1. Fetch historical K-lines (~2016 entries)
+2. Calculate technical indicators
+3. Build features
+4. Generate labels
+5. 80/20 train/validation split
+6. LightGBM training
+7. Save model to models/prophet_lgb_{symbol}.pkl
+8. Reload into PredictAgent
 ```
 
-## 多币种支持
+## Multi-Symbol Support
 
-每个交易对独立的 PredictAgent 和模型文件：
+Each trading pair has an independent PredictAgent and model file:
 
 ```
 models/
@@ -131,49 +131,49 @@ models/
 └── prophet_lgb_BNBUSDT.pkl
 ```
 
-## 依赖关系
+## Dependencies
 
-```
+```text
 PredictAgent
 ├── ProphetMLModel (src/models/prophet_model.py)
 ├── TechnicalFeatureEngineer (src/features/technical_features.py)
-└── ProphetAutoTrainer (自动训练)
+└── ProphetAutoTrainer (auto training)
 ```
 
-## 配置
+## Configuration
 
-| 参数 | 默认值 | 说明 |
-|------|--------|------|
-| horizon | "30m" | 预测时间范围 |
-| symbol | "BTCUSDT" | 交易对 |
-| model_path | 自动生成 | 模型文件路径 |
+| Parameter | Default | Description |
+|-----------|--------|-------------|
+| horizon | "30m" | Prediction time range |
+| symbol | "BTCUSDT" | Trading pair |
+| model_path | Auto-generated | Model file path |
 
-## 使用示例
+## Usage Example
 
 ```python
 from src.agents.predict_agent import PredictAgent
 
-# 初始化 (自动加载模型)
+# Initialize (auto-load model)
 agent = PredictAgent(horizon='30m', symbol='BTCUSDT')
 
-# 预测
+# Predict
 result = await agent.predict(features)
 
-print(f"上涨概率: {result.probability_up:.2%}")
-print(f"信号: {result.signal}")
-print(f"置信度: {result.confidence:.2%}")
+print(f"Upside probability: {result.probability_up:.2%}")
+print(f"Signal: {result.signal}")
+print(f"Confidence: {result.confidence:.2%}")
 ```
 
-## 日志输出
+## Log Output
 
-Dashboard 日志格式：
+Dashboard log format:
 
 ```
 🔮 PredictAgent (The Prophet): 📈 P(Up)=56.5% | Signal: bullish | Conf: 65%
 ```
 
-符号说明：
+Symbol legend:
 
 - 📈 P(Up) > 55%
 - 📉 P(Up) < 45%
-- ➡️ 其他
+- ➡️ Other
